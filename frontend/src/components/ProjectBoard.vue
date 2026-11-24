@@ -10,6 +10,7 @@ const {
   selectedProject,
   projectPeriod,
   projectBoard,
+  projectEcBoard,
   projectLoading,
   projectError,
   loadProjectBoard,
@@ -21,6 +22,8 @@ const {
 const FORMULAS = {
   completion: '需求完成率 = 需求完成数 ÷ 需求承接数 × 100%',
   on_time: '准时交付率 = 准时交付数 ÷ 应交付数 × 100%',
+  ec_resolution: '故障解决率 = 故障解决数 ÷ 故障发现数 × 100%',
+  ec_response: '平均响应时长 = 故障响应时长总和 ÷ 故障数（分钟）',
 }
 
 const detail = ref(null)
@@ -31,6 +34,7 @@ onMounted(() => {
 })
 
 const periods = computed(() => periodLabels(projectBoard.value, projectPeriod.value))
+const ecPeriods = computed(() => periodLabels(projectEcBoard.value, projectPeriod.value))
 
 function fmtPct(value) {
   return value == null ? '—' : `${(value * 100).toFixed(1)}%`
@@ -38,6 +42,10 @@ function fmtPct(value) {
 
 function findRow(period, projectId) {
   return projectBoard.value.find((item) => item.period_value === period && item.project_id === projectId)
+}
+
+function findEcRow(period, projectId) {
+  return projectEcBoard.value.find((item) => item.period_value === period && item.project_id === projectId)
 }
 
 const completionSeries = computed(() => {
@@ -66,6 +74,34 @@ const onTimeSeries = computed(() => {
     return complete > 0 ? weighted / complete : null
   })
   return [{ name: '准时交付率', data, color: '#e5a84b' }]
+})
+
+const ecResolutionSeries = computed(() => {
+  if (selectedProject.value) {
+    const rows = ecPeriods.value.map((p) => findEcRow(p, selectedProject.value))
+    return [{ name: '故障解决率', data: rows.map((r) => r?.resolution_rate ?? null), color: '#5e8fad' }]
+  }
+  const data = ecPeriods.value.map((p) => {
+    const rows = projectEcBoard.value.filter((item) => item.period_value === p)
+    const found = rows.reduce((sum, item) => sum + (item.found_cnt || 0), 0)
+    const resolved = rows.reduce((sum, item) => sum + (item.resolved_cnt || 0), 0)
+    return found > 0 ? resolved / found : null
+  })
+  return [{ name: '故障解决率', data, color: '#5e8fad' }]
+})
+
+const ecResponseSeries = computed(() => {
+  if (selectedProject.value) {
+    const rows = ecPeriods.value.map((p) => findEcRow(p, selectedProject.value))
+    return [{ name: '平均响应时长', data: rows.map((r) => r?.avg_response_minutes ?? null), color: '#8d7aa8' }]
+  }
+  const data = ecPeriods.value.map((p) => {
+    const rows = projectEcBoard.value.filter((item) => item.period_value === p)
+    const found = rows.reduce((sum, item) => sum + (item.found_cnt || 0), 0)
+    const respSum = rows.reduce((sum, item) => sum + (item.response_minutes_sum || 0), 0)
+    return found > 0 ? respSum / found : null
+  })
+  return [{ name: '平均响应时长', data, color: '#8d7aa8' }]
 })
 
 function showDetail(kind, { seriesName, dataIndex }) {
@@ -105,6 +141,44 @@ function showDetail(kind, { seriesName, dataIndex }) {
         { label: '准时交付率', value: due > 0 ? fmtPct(onTime / due) : '—' },
         { label: '应交付数', value: due },
         { label: '准时交付数', value: onTime },
+      ]
+    }
+  } else if (kind === 'ec_resolution') {
+    const ecPeriod = ecPeriods.value[dataIndex]
+    if (selectedProject.value) {
+      const item = findEcRow(ecPeriod, selectedProject.value)
+      rows = [
+        { label: '故障解决率', value: fmtPct(item?.resolution_rate) },
+        { label: '故障发现数', value: item?.found_cnt ?? 0 },
+        { label: '故障解决数', value: item?.resolved_cnt ?? 0 },
+      ]
+    } else {
+      const items = projectEcBoard.value.filter((row) => row.period_value === ecPeriod)
+      const found = items.reduce((sum, row) => sum + (row.found_cnt || 0), 0)
+      const resolved = items.reduce((sum, row) => sum + (row.resolved_cnt || 0), 0)
+      rows = [
+        { label: '故障解决率', value: found > 0 ? fmtPct(resolved / found) : '—' },
+        { label: '故障发现数', value: found },
+        { label: '故障解决数', value: resolved },
+      ]
+    }
+  } else if (kind === 'ec_response') {
+    const ecPeriod = ecPeriods.value[dataIndex]
+    if (selectedProject.value) {
+      const item = findEcRow(ecPeriod, selectedProject.value)
+      rows = [
+        { label: '平均响应时长', value: item?.avg_response_minutes == null ? '—' : `${item.avg_response_minutes} 分钟` },
+        { label: '响应时长总和', value: `${item?.response_minutes_sum ?? 0} 分钟` },
+        { label: '故障数', value: item?.found_cnt ?? 0 },
+      ]
+    } else {
+      const items = projectEcBoard.value.filter((row) => row.period_value === ecPeriod)
+      const found = items.reduce((sum, row) => sum + (row.found_cnt || 0), 0)
+      const respSum = items.reduce((sum, row) => sum + (row.response_minutes_sum || 0), 0)
+      rows = [
+        { label: '平均响应时长', value: found > 0 ? `${(respSum / found).toFixed(1)} 分钟` : '—' },
+        { label: '响应时长总和', value: `${respSum} 分钟` },
+        { label: '故障数', value: found },
       ]
     }
   }
@@ -153,6 +227,8 @@ async function refreshCache() {
     <div class="trend-list" :aria-busy="projectLoading">
       <TrendChart title="需求完成率" subtitle="项目需求完成情况" :formula="FORMULAS.completion" :x-labels="periods" :series="completionSeries" percent @point-click="(p) => showDetail('completion', p)" />
       <TrendChart title="准时交付率" subtitle="项目需求准时交付情况" :formula="FORMULAS.on_time" :x-labels="periods" :series="onTimeSeries" percent @point-click="(p) => showDetail('on_time', p)" />
+      <TrendChart title="EC 故障解决率" subtitle="项目故障解决情况" :formula="FORMULAS.ec_resolution" :x-labels="ecPeriods" :series="ecResolutionSeries" percent @point-click="(p) => showDetail('ec_resolution', p)" />
+      <TrendChart title="EC 平均响应时长" subtitle="项目故障响应情况" :formula="FORMULAS.ec_response" :x-labels="ecPeriods" :series="ecResponseSeries" unit=" 分钟" @point-click="(p) => showDetail('ec_response', p)" />
     </div>
 
     <div v-if="detail" class="detail-mask" @click.self="detail = null">

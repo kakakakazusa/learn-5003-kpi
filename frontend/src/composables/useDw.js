@@ -24,6 +24,7 @@ export function useDw() {
   const projectBoard = ref([])
   const projectLoading = ref(false)
   const projectError = ref('')
+  const projectEcBoard = ref([])
 
   async function loadMeta() {
     try {
@@ -64,10 +65,16 @@ export function useDw() {
     projectLoading.value = true
     projectError.value = ''
     try {
-      projectBoard.value = await api.dwProjectBoard(projectPeriod.value)
+      const [prData, ecData] = await Promise.all([
+        api.dwProjectBoard(projectPeriod.value),
+        api.dwProjectEc({ period_type: projectPeriod.value }),
+      ])
+      projectBoard.value = prData
+      projectEcBoard.value = ecData
     } catch (error) {
       projectError.value = error.message
       projectBoard.value = []
+      projectEcBoard.value = []
     } finally {
       projectLoading.value = false
     }
@@ -120,6 +127,7 @@ export function useDw() {
     selectedProject,
     projectPeriod,
     projectBoard,
+    projectEcBoard,
     projectLoading,
     projectError,
     loadProjectBoard,
