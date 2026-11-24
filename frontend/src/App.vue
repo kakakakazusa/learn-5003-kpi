@@ -67,7 +67,6 @@ const currentSubtitle = computed(() =>
           <div>
             <div class="eyebrow"><span class="eyebrow-line"></span> KPI DASHBOARD</div>
             <h1>{{ currentTitle }}<span class="heading-period">· {{ currentSubtitle }}</span></h1>
-            <p>你好，小满。这里是你的关键绩效指标趋势概览。</p>
           </div>
         </section>
 
