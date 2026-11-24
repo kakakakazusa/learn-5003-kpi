@@ -1,0 +1,48 @@
+# ============ 通用 ============
+.DS_Store
+Thumbs.db
+desktop.ini
+*.log
+.idea/
+.vscode/
+*.swp
+
+# ============ Python ============
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+ENV/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+
+# ============ 环境变量与密钥 ============
+# .env 里是数据库密码 / SECRET_KEY，绝对不要提交
+.env
+.env.local
+.env.*.local
+# 但模板要保留，方便别人复现
+!.env.example
+
+# ============ 本地数据库 ============
+# SQLite 是本地开发数据，用 ETL 脚本可重建
+instance/
+*.db
+*.sqlite3
+*.db-journal
+
+# ============ 前端 ============
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# ============ 临时文件 ============
+tmp/
+temp/
+*.tmp
