@@ -7,6 +7,7 @@ def sync(conn):
     cur.execute("DELETE FROM ads_pr_kpi")
     cur.execute("DELETE FROM ads_ec_kpi")
     cur.execute("DELETE FROM ads_pr_project_kpi")
+    cur.execute("DELETE FROM ads_ec_project_kpi")
 
     periods = {
         "week": "CONCAT(d.year, '-W', LPAD(d.week_of_year, 2, '0'))",
@@ -59,6 +60,21 @@ def sync(conn):
                       CASE WHEN SUM(s.pr_complete_cnt) > 0 THEN SUM(s.pr_rework_cnt) / SUM(s.pr_complete_cnt) ELSE NULL END,
                       NULL
                FROM dwm_pr_project_1d s JOIN dim_date d ON d.full_date = s.stat_date
+               GROUP BY %s, s.project_id""" % (ptype, expr, expr),
+        )
+        cur.execute(
+            """INSERT INTO ads_ec_project_kpi
+               (period_type, period_value, project_id, ec_found_cnt, ec_resolved_cnt,
+                ec_response_minutes_sum, ec_resolve_minutes_sum, ec_recur_cnt,
+                ec_resolution_rate, ec_avg_response_minutes, ec_avg_resolve_minutes, ec_recur_rate, ec_severe_cnt)
+               SELECT '%s', %s, s.project_id, SUM(s.ec_found_cnt), SUM(s.ec_resolved_cnt),
+                      SUM(s.ec_response_minutes_sum), SUM(s.ec_resolve_minutes_sum), SUM(s.ec_recur_cnt),
+                      CASE WHEN SUM(s.ec_found_cnt) > 0 THEN SUM(s.ec_resolved_cnt) / SUM(s.ec_found_cnt) ELSE NULL END,
+                      CASE WHEN SUM(s.ec_found_cnt) > 0 THEN SUM(s.ec_response_minutes_sum) / SUM(s.ec_found_cnt) ELSE NULL END,
+                      CASE WHEN SUM(s.ec_resolved_cnt) > 0 THEN SUM(s.ec_resolve_minutes_sum) / SUM(s.ec_resolved_cnt) ELSE NULL END,
+                      CASE WHEN SUM(s.ec_resolved_cnt) > 0 THEN SUM(s.ec_recur_cnt) / SUM(s.ec_resolved_cnt) ELSE NULL END,
+                      SUM(s.ec_severe_cnt)
+               FROM dwm_ec_project_1d s JOIN dim_date d ON d.full_date = s.stat_date
                GROUP BY %s, s.project_id""" % (ptype, expr, expr),
         )
 

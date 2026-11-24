@@ -18,6 +18,7 @@ from cache import get as cache_get
 from cache import set as cache_set
 from dw_models import (
     AdsEcKpi,
+    AdsEcProjectKpi,
     AdsPrKpi,
     AdsPrProjectKpi,
     DimDepartment,
@@ -392,3 +393,48 @@ def project_board():
 def cache_clear():
     cleared = cache_clear_prefix("dw:")
     return jsonify(code=0, message="ok", data={"cleared": cleared})
+
+
+@dw_bp.get("/project/ec")
+def project_ec():
+    period_type = request.args.get("period_type")
+    period_value = request.args.get("period_value")
+    project_id = request.args.get("project_id", type=int)
+
+    cache_key = f"dw:project:ec:{period_type}:{period_value}:{project_id}"
+    cached = cache_get(cache_key)
+    if cached is not None:
+        return jsonify(code=0, message="ok", data=cached)
+
+    query = db.session.query(AdsEcProjectKpi)
+    if period_type:
+        query = query.filter(AdsEcProjectKpi.period_type == period_type)
+    if period_value:
+        query = query.filter(AdsEcProjectKpi.period_value == period_value)
+    if project_id is not None:
+        query = query.filter(AdsEcProjectKpi.project_id == project_id)
+
+    rows = query.order_by(
+        AdsEcProjectKpi.period_type, AdsEcProjectKpi.period_value, AdsEcProjectKpi.project_id
+    ).all()
+    data = [
+        {
+            "period_type": row.period_type,
+            "period_value": row.period_value,
+            "project_id": row.project_id,
+            "project_name": _project_name(row.project_id),
+            "found_cnt": row.ec_found_cnt,
+            "resolved_cnt": row.ec_resolved_cnt,
+            "response_minutes_sum": row.ec_response_minutes_sum,
+            "resolve_minutes_sum": row.ec_resolve_minutes_sum,
+            "recur_cnt": row.ec_recur_cnt,
+            "resolution_rate": _float(row.ec_resolution_rate),
+            "avg_response_minutes": _float(row.ec_avg_response_minutes),
+            "avg_resolve_minutes": _float(row.ec_avg_resolve_minutes),
+            "recur_rate": _float(row.ec_recur_rate),
+            "severe_cnt": row.ec_severe_cnt,
+        }
+        for row in rows
+    ]
+    cache_set(cache_key, data)
+    return jsonify(code=0, message="ok", data=data)

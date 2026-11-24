@@ -7,6 +7,7 @@ def sync(conn):
     cur.execute("DELETE FROM dwm_pr_emp_1d")
     cur.execute("DELETE FROM dwm_ec_emp_1d")
     cur.execute("DELETE FROM dwm_pr_project_1d")
+    cur.execute("DELETE FROM dwm_ec_project_1d")
 
     # PR：承接按 assign_date，完成按 complete_date，分两次聚合后合并
     cur.execute("""INSERT INTO dwm_pr_emp_1d (stat_date, employee_id, pr_assign_cnt)

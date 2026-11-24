@@ -49,4 +49,5 @@ export const api = {
   dwProjectMeta: () => request('/dw/project/meta'),
   dwProjectBoard: (periodType) => request(`/dw/project/board?period_type=${encodeURIComponent(periodType)}`),
   dwProjectKpi: (params) => request(`/dw/project/kpi?${qs(params)}`),
+  dwProjectEc: (params) => request(`/dw/project/ec?${qs(params)}`),
 }
