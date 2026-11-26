@@ -3,7 +3,6 @@
 
 模块职责拆分：
 - extensions.py  : db 实例
-- models.py      : 业务库（默认 bind）模型
 - dw_models.py   : 数仓库（dw bind）模型
 - routes/        : 各业务蓝图
 """
@@ -23,17 +22,19 @@ def create_app():
     app = Flask(__name__)
     app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-only-secret")
 
-    database_uri = os.getenv("DATABASE_URL", "sqlite:///analytics.db")
-    app.config["SQLALCHEMY_DATABASE_URI"] = database_uri
-    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-    if database_uri.startswith("mysql"):
-        app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"pool_pre_ping": True}
-
     dw_database_uri = os.getenv(
         "DW_DATABASE_URL",
         "mysql+pymysql://root:root@127.0.0.1:3306/5003?charset=utf8mb4",
     )
     app.config["SQLALCHEMY_BINDS"] = {"dw": dw_database_uri}
+
+    # 全部模型都在 dw bind（见 dw_models.BaseDW）；默认 bind 仅作占位，
+    # 未配置 DATABASE_URL 时直接与数仓库同源，不再需要额外的业务库。
+    database_uri = os.getenv("DATABASE_URL") or dw_database_uri
+    app.config["SQLALCHEMY_DATABASE_URI"] = database_uri
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    if database_uri.startswith("mysql"):
+        app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"pool_pre_ping": True}
 
     origins = [origin.strip() for origin in os.getenv("CORS_ORIGINS", "*").split(",") if origin.strip()]
     CORS(app, resources={r"/api/*": {"origins": origins}})
@@ -41,11 +42,8 @@ def create_app():
 
     # 注册模型与蓝图
     import dw_models  # noqa: F401
-    import models  # noqa: F401
-    from routes.analytics import analytics_bp
     from routes.dw import dw_bp
 
-    app.register_blueprint(analytics_bp)
     app.register_blueprint(dw_bp)
 
     @app.cli.command("init-db")

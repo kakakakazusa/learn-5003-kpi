@@ -54,12 +54,10 @@ Vue 3 + ECharts 前端、Flask + SQLAlchemy 后端、MySQL 数仓的前后端分
                                                                └─► Redis 缓存（可选）
 ```
 
-后端挂载两个数据库 bind：
+后端只挂载一个实际承载数据的 bind：
 
-- **默认 bind**：业务库（`DATABASE_URL`），存放 `sales_records`、`employee_kpi_records`，服务 `/api/analytics/overview` 早期经营分析接口
-- **`dw` bind**：数仓库（`DW_DATABASE_URL`，默认 `5003`），服务 `/api/dw/*` 全部看板接口
-
-> 当前前端两个看板只消费 `dw` 接口，业务库仅保留在早期原型接口中使用。
+- **`dw` bind**：数仓库（`DW_DATABASE_URL`，默认 `5003`），23 张表全部在此，服务 `/api/dw/*` 看板接口
+- **默认 bind**：不含任何模型，仅作 Flask-SQLAlchemy 的占位；显式配置 `DATABASE_URL` 时才指向其他库，否则与数仓库同源
 
 ## 目录结构
 
@@ -82,11 +80,9 @@ demo/
 ├── backend/                        # Flask，开发端口 8000
 │   ├── app.py                      # 应用工厂：双 bind、CORS、错误处理、init-db
 │   ├── extensions.py               # SQLAlchemy 实例（独立存放避免循环导入）
-│   ├── models.py                   # 业务库模型
 │   ├── dw_models.py                # 数仓 23 张表模型（dw bind）
 │   ├── cache.py                    # Redis 封装，异常静默降级
 │   ├── routes/
-│   │   ├── analytics.py            # /api/health、/api/analytics/overview
 │   │   └── dw.py                   # /api/dw/* 看板接口
 │   ├── requirements.txt
 │   └── .env.example
@@ -114,8 +110,6 @@ demo/
 
 ```sql
 CREATE DATABASE `5003` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
--- 可选：早期经营分析接口使用的业务库
-CREATE DATABASE analytics CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
 ### 2. 配置后端环境变量
@@ -125,10 +119,9 @@ cd backend
 cp .env.example .env        # Windows: Copy-Item .env.example .env
 ```
 
-编辑 `.env`，至少确认这两项：
+编辑 `.env`，确认数仓库连接串（默认 bind 无需配置，未设置时与它同源）：
 
 ```dotenv
-DATABASE_URL=mysql+pymysql://root:your_password@127.0.0.1:3306/analytics?charset=utf8mb4
 DW_DATABASE_URL=mysql+pymysql://root:your_password@127.0.0.1:3306/5003?charset=utf8mb4
 ```
 
@@ -173,7 +166,7 @@ npm run dev                  # http://localhost:5173
 
 | 变量 | 说明 | 默认值 |
 |---|---|---|
-| `DATABASE_URL` | 业务库连接串（默认 bind） | `sqlite:///analytics.db` |
+| `DATABASE_URL` | 默认 bind（占位，无模型）；不设置时与 `DW_DATABASE_URL` 同源 | 同 `DW_DATABASE_URL` |
 | `DW_DATABASE_URL` | 数仓库连接串（`dw` bind） | `mysql+pymysql://root:root@127.0.0.1:3306/5003` |
 | `PORT` | 后端监听端口 | `8000` |
 | `SECRET_KEY` | Flask 密钥 | `dev-only-secret` |
@@ -218,7 +211,6 @@ ETL 不走 `.env`，直接读环境变量（未设置则用括号内默认值）
 
 | 方法 | 路径 | 说明 |
 |---|---|---|
-| GET | `/api/analytics/overview?period=month` | 早期经营分析聚合接口（业务库） |
 | POST | `/api/dw/cache/clear` | 清空 `dw:` 前缀缓存，返回清除条数 |
 
 **查询参数**
@@ -318,7 +310,6 @@ waitress-serve --host 127.0.0.1 --port 8000 app:create_app
 
 ## 已知限制
 
-- `/api/analytics/overview` 依赖业务库的 `sales_records` / `employee_kpi_records`，仓库内没有灌数脚本，未自建数据时该接口返回空结果；两个看板不依赖它
 - `source.py` 是模拟数据源，接真实系统需替换该模块的抽取逻辑
 - 只读接口，无鉴权与写操作（除清缓存）
 - `pr_work_hours_ratio` 尚未计算

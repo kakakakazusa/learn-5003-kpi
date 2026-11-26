@@ -1,6 +1,6 @@
-# 数据分析平台前端
+# idata 前端
 
-Vue 3 + Vite + ECharts 的经营分析仪表盘。
+Vue 3 + Vite + ECharts 的研发交付 KPI 看板。
 
 ```powershell
 npm install

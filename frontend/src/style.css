@@ -161,25 +161,7 @@ a { color: inherit; text-decoration: none; }
 .dots-button { border: 0; color: #8f9b94; background: transparent; font-size: 18px; line-height: 12px; }
 .trend-chart { width: 100%; height: 204px; margin-top: 12px; }
 .chart-body { position: relative; }
-.category-chart { width: 100%; height: 211px; margin-top: 7px; }
 .chart-empty { position: absolute; inset: 0; display: grid; place-items: center; color: #a1aaa4; background: rgba(255, 255, 255, .78); font-size: 10px; }
-.lower-grid { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.55fr); gap: 13px; margin-top: 14px; }
-.region-panel, .records-panel { min-height: 282px; }
-.subtle-period, .record-count { color: #99a39d; font-size: 9px; }
-.region-chart { width: 100%; height: 218px; margin-top: 5px; }
-.records-table-wrap { margin-top: 13px; }
-.records-table-wrap table { width: 100%; border-collapse: collapse; text-align: left; }
-.records-table-wrap th { padding: 8px 4px; border-bottom: 1px solid #eff1ef; color: #a0a9a3; font-size: 9px; font-weight: 500; }
-.records-table-wrap td { height: 29px; padding: 4px; border-bottom: 1px solid #f4f5f4; color: #526057; font-size: 9px; white-space: nowrap; }
-.records-table-wrap tr:last-child td { border-bottom: 0; }
-.records-table-wrap th:last-child, .records-table-wrap td:last-child { text-align: right; }
-.records-table-wrap td:first-child { color: #58665e; }
-.category-dot { display: inline-block; width: 6px; height: 6px; margin: 0 7px 1px 0; border-radius: 50%; background: #5a9a79; }
-.dot-1 { background: #dfa94f; }.dot-2 { background: #82a8bf; }.dot-3 { background: #b095bd; }.dot-4 { background: #cd896c; }
-.region-cell, .date-cell { color: #89948d !important; }
-.amount-cell { color: #43564a !important; font-weight: 600; }
-.table-empty { height: 130px !important; color: #9ba49e !important; text-align: center !important; }
-.table-footer { display: flex; align-items: center; gap: 8px; margin-top: 6px; padding-top: 8px; border-top: 1px solid #f1f3f1; color: #a3aca6; font-size: 9px; }
 .live-dot { width: 5px; height: 5px; margin-left: auto; box-shadow: none; }
 .page-footer { display: flex; justify-content: space-between; margin-top: 17px; color: #aab2ad; font-size: 9px; }
 
