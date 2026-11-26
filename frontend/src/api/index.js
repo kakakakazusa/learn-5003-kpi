@@ -38,8 +38,6 @@ function qs(params) {
 }
 
 export const api = {
-  health: () => request('/health'),
-
   // 数仓库：组织维度（部门看板）
   dwMeta: () => request('/dw/meta'),
   dwBoard: (orgType, periodType) => request(`/dw/board?org_type=${encodeURIComponent(orgType)}&period_type=${encodeURIComponent(periodType)}`),
