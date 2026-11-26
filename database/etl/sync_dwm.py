@@ -18,9 +18,9 @@ def sync(conn):
         ON DUPLICATE KEY UPDATE pr_assign_cnt = VALUES(pr_assign_cnt)""")
 
     cur.execute("""INSERT INTO dwm_pr_emp_1d
-        (stat_date, employee_id, pr_complete_cnt, pr_due_cnt, pr_on_time_cnt, pr_rework_cnt, pr_process_days_sum)
+        (stat_date, employee_id, pr_complete_cnt, pr_due_cnt, pr_on_time_cnt, pr_rework_cnt, pr_process_days_sum, pr_work_hours_sum)
         SELECT d.full_date, f.employee_id, COUNT(*), COUNT(*),
-               SUM(f.is_on_time), SUM(f.rework_flag), SUM(f.process_days)
+               SUM(f.is_on_time), SUM(f.rework_flag), SUM(f.process_days), SUM(f.work_hours)
         FROM dwd_pr_fact f JOIN dim_date d ON d.date_key = f.complete_date_key
         WHERE f.employee_id IS NOT NULL AND f.complete_date_key IS NOT NULL
         GROUP BY d.full_date, f.employee_id
@@ -29,7 +29,8 @@ def sync(conn):
           pr_due_cnt = VALUES(pr_due_cnt),
           pr_on_time_cnt = VALUES(pr_on_time_cnt),
           pr_rework_cnt = VALUES(pr_rework_cnt),
-          pr_process_days_sum = VALUES(pr_process_days_sum)""")
+          pr_process_days_sum = VALUES(pr_process_days_sum),
+          pr_work_hours_sum = VALUES(pr_work_hours_sum)""")
 
     # EC：发现按 found，解决按 resolved
     cur.execute("""INSERT INTO dwm_ec_emp_1d (stat_date, employee_id, ec_found_cnt, ec_response_minutes_sum)
@@ -62,9 +63,9 @@ def sync(conn):
         ON DUPLICATE KEY UPDATE pr_assign_cnt = VALUES(pr_assign_cnt)""")
 
     cur.execute("""INSERT INTO dwm_pr_project_1d
-        (stat_date, project_id, pr_complete_cnt, pr_due_cnt, pr_on_time_cnt, pr_rework_cnt, pr_process_days_sum)
+        (stat_date, project_id, pr_complete_cnt, pr_due_cnt, pr_on_time_cnt, pr_rework_cnt, pr_process_days_sum, pr_work_hours_sum)
         SELECT d.full_date, f.project_id, COUNT(*), COUNT(*),
-               SUM(f.is_on_time), SUM(f.rework_flag), SUM(f.process_days)
+               SUM(f.is_on_time), SUM(f.rework_flag), SUM(f.process_days), SUM(f.work_hours)
         FROM dwd_pr_fact f JOIN dim_date d ON d.date_key = f.complete_date_key
         WHERE f.project_id IS NOT NULL AND f.complete_date_key IS NOT NULL
         GROUP BY d.full_date, f.project_id
@@ -73,7 +74,8 @@ def sync(conn):
           pr_due_cnt = VALUES(pr_due_cnt),
           pr_on_time_cnt = VALUES(pr_on_time_cnt),
           pr_rework_cnt = VALUES(pr_rework_cnt),
-          pr_process_days_sum = VALUES(pr_process_days_sum)""")
+          pr_process_days_sum = VALUES(pr_process_days_sum),
+          pr_work_hours_sum = VALUES(pr_work_hours_sum)""")
 
     # EC 项目维度：按 project_id 聚合（发现按 found，解决按 resolved）
     cur.execute("""INSERT INTO dwm_ec_project_1d (stat_date, project_id, ec_found_cnt, ec_response_minutes_sum)

@@ -97,7 +97,8 @@ demo/
     │   ├── sync_dwm.py             # DWM：员工/项目日汇总
     │   ├── sync_dws.py             # DWS：组织日汇总
     │   ├── sync_ads.py             # ADS：组织/项目 × 周期 KPI
-    │   └── runner.py               # 命令行入口与定时调度
+    │   ├── runner.py               # 命令行入口与定时调度
+    │   └── test_etl.py             # 端到端集成测试（独立测试库，跑完删库）
     ├── 数据库设计文档.md            # 分层方案与建表 DDL
     └── 项目数据设计文档.md          # 项目维度的补充设计
 ```
@@ -270,6 +271,32 @@ python -m database.etl.runner --schedule --time 03:30
 - 所有 `/api/dw/*` 读接口按「接口名 + 全部查询参数」拼 Redis key，前缀 `dw:`，默认 TTL 24 小时
 - `cache.py` 对 Redis 异常全部静默吞掉：连不上就当作未命中，接口照常回源，**本地不装 Redis 也能跑**
 - ETL 重跑后数据会变，需要主动 `POST /api/dw/cache/clear` 或点前端"刷新缓存"按钮
+
+## 测试
+
+`database/etl/test_etl.py` 是数仓链路的端到端集成测试。它在**独立测试库** `dw_etl_test` 中建表、跑完整条链路（ODS → DIM → DWD → DWM → DWS → ADS）、逐层校验，跑完自动删库，**不会读写生产库 `5003`**。
+
+```bash
+cd D:/code/codex_start/demo
+backend/.venv/Scripts/python.exe database/etl/test_etl.py -v        # 逐条显示
+backend/.venv/Scripts/python.exe database/etl/test_etl.py --keep    # 保留测试库便于查数
+```
+
+前置条件：MySQL 已启动，`database/etl/config.py` 里的 `DW_DB_*` 可连。MySQL 不可用时测试会**自动跳过**而不是报错。
+
+| 用例 | 校验的契约 |
+|---|---|
+| 01 | ODS 源数据规模（18 员工 / 20 项目 / PR 与 EC 非空） |
+| 02 | `dim_date` 覆盖三年且包含今天 |
+| 03 | DWD `is_on_time`、`process_days` 能由 ODS 原始日期反算 |
+| 04 | DWD `response_minutes`、`resolve_minutes` 等于 ODS 时间戳之差 |
+| 05 | DWS 部门/团队/领域汇总逐日等于员工级之和 |
+| 06 | ADS 完成率、准时率、平均处理天数能由分子分母反算 |
+| 07 | ADS 覆盖 5 种周期 × 4 种组织维度 |
+| 08 | 重跑 DIM→ADS 后各层行数不变（幂等） |
+| 09 | DWS 工时汇总等于 DWD 已完成需求工时之和 |
+
+测试库名可用 `DW_TEST_DB` 覆盖。
 
 ## 构建与部署
 
