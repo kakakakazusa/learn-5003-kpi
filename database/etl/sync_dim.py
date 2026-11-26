@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""DIM 维度层同步。"""
+"""DIM dimension layer sync."""
 from datetime import date, timedelta
 
 
@@ -55,10 +55,10 @@ def sync(conn):
         )
         d += timedelta(days=1)
 
-    for key, code, name in [(1, "P0", "致命"), (2, "P1", "严重"), (3, "P2", "一般"), (4, "P3", "轻微")]:
+    for key, code, name in [(1, "P0", "Critical"), (2, "P1", "Major"), (3, "P2", "Minor"), (4, "P3", "Low")]:
         cur.execute("INSERT INTO dim_severity (severity_key, severity_code, severity_name, priority_order) VALUES (%s,%s,%s,%s)",
                     (key, code, name, key))
 
     conn.commit()
     cur.close()
-    print("DIM 层同步完成")
+    print("DIM layer sync complete")

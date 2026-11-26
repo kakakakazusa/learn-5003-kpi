@@ -1,157 +1,157 @@
-# idata · KPI 数据分析看板
+# idata · KPI Data Analytics Dashboard
 
-Vue 3 + ECharts 前端、Flask + SQLAlchemy 后端、MySQL 数仓的前后端分离 KPI 分析平台。数据不是写死的演示数据，而是通过一套 `ODS → DIM → DWD → DWM → DWS → ADS` 分层 ETL 从源数据加工而来，接口只读 ADS 层结果。
+A front-end/back-end separated KPI analytics platform with a Vue 3 + ECharts front end, a Flask + SQLAlchemy back end, and a MySQL warehouse. The data is not hardcoded demo data; it is processed from source data through a layered `ODS → DIM → DWD → DWM → DWS → ADS` ETL pipeline, and the APIs only read ADS layer results.
 
-**技术栈**
+**Tech stack**
 
-| 层 | 选型 |
+| Layer | Choice |
 |---|---|
-| 前端 | Vue 3.5、Vite 6、ECharts 5（按需引入） |
-| 后端 | Flask 3.0、Flask-SQLAlchemy 3.1、SQLAlchemy 2.0、PyMySQL |
-| 数据库 | MySQL 8（数仓库 `5003`，utf8mb4） |
-| 缓存 | Redis（可选，不可用自动降级） |
-| 数仓 | 6 层分层建模，23 张表 |
+| Front end | Vue 3.5, Vite 6, ECharts 5 (on-demand imports) |
+| Back end | Flask 3.0, Flask-SQLAlchemy 3.1, SQLAlchemy 2.0, PyMySQL |
+| Database | MySQL 8 (warehouse `5003`, utf8mb4) |
+| Cache | Redis (optional, automatically falls back when unavailable) |
+| Warehouse | 6 layered models, 23 tables |
 
-## 功能
+## Features
 
-**部门看板**（组织维度：部门 / 团队 / 领域）
+**Department Board** (organization dimension: department / team / domain)
 
-- PR 需求完成率：各组织多序列趋势对比
-- PR 准时交付率
-- EC 故障解决率
-- EC 平均响应时长（分钟）
+- PR Completion Rate: multi-series trend comparison by organization
+- PR On-time Delivery Rate
+- EC Resolution Rate
+- EC Avg. Response Time (min)
 
-**项目看板**（项目维度，可与组织维度并列切换）
+**Project Board** (project dimension, switchable side by side with the organization dimension)
 
-- 需求完成率、准时交付率
-- EC 故障解决率、EC 平均响应时长
-- 支持"全部项目"聚合视图与单项目下钻
+- Completion Rate, On-time Delivery Rate
+- EC Resolution Rate, EC Avg. Response Time
+- Supports an "All Projects" aggregate view and drill-down into a single project
 
-**交互细节**
+**Interaction details**
 
-- 时间粒度切换：周 / 月 / 季度 / 半年 / 年
-- 点击任意数据点弹出明细面板，显示分子、分母与比率，口径可追溯
-- 每个图表右上角 `?` 悬浮显示指标公式
-- "刷新缓存"按钮清空 Redis 中 `dw:` 前缀的缓存后重新取数
-- 周期自动过滤未来值（如当前 2026-11 不展示 2026-12），并按粒度截断最近 N 期（周/月 12 期，季/半年/年 4 期）
-- 加载态、错误横幅 + 重试、空数据占位、窄屏适配
+- Time granularity switching: Week / Month / Quarter / Half-year / Year
+- Click any data point to open a details panel showing the numerator, denominator and rate, with traceable metric definitions
+- Hover over the `?` in the top-right corner of each chart to view the metric formula
+- The "Clear Cache" button clears `dw:`-prefixed keys in Redis and then re-fetches data
+- Periods automatically filter out future values (e.g. when the current period is 2026-11, 2026-12 is not shown) and trim to the last N periods by granularity (12 periods for week/month, 4 for quarter/half-year/year)
+- Loading state, error banner + Retry, empty-data placeholder, narrow-screen adaptation
 
-## 架构
+## Architecture
 
-**数据加工链**
+**Data processing chain**
 
 ```
-源系统（模拟 HR / PM / ITSM）
-  └─► ODS ─► DIM ─► DWD ─► DWM ─► DWS ─► ADS     全部落在 MySQL 数仓 `5003`
+Source systems (simulated HR / PM / ITSM)
+  └─► ODS ─► DIM ─► DWD ─► DWM ─► DWS ─► ADS     All land in the MySQL warehouse `5003`
       └────────────── database/etl/runner.py ──────────────┘
 ```
 
-**请求链路**
+**Request flow**
 
 ```
-浏览器 ─► Vue 3 + ECharts ─► /api（Vite 代理 / Nginx 反代）─► Flask
-                                                               ├─► 数仓 ADS 表（dw bind）
-                                                               └─► Redis 缓存（可选）
+Browser ─► Vue 3 + ECharts ─► /api (Vite proxy / Nginx reverse proxy) ─► Flask
+                                                               ├─► Warehouse ADS tables (dw bind)
+                                                               └─► Redis cache (optional)
 ```
 
-后端只挂载一个实际承载数据的 bind：
+The back end mounts only one bind that actually carries data:
 
-- **`dw` bind**：数仓库（`DW_DATABASE_URL`，默认 `5003`），23 张表全部在此，服务 `/api/dw/*` 看板接口
-- **默认 bind**：不含任何模型，仅作 Flask-SQLAlchemy 的占位；显式配置 `DATABASE_URL` 时才指向其他库，否则与数仓库同源
+- **`dw` bind**: the warehouse (`DW_DATABASE_URL`, default `5003`), all 23 tables live here, serving the `/api/dw/*` dashboard APIs
+- **Default bind**: contains no models and serves only as a Flask-SQLAlchemy placeholder; it points to another database only when `DATABASE_URL` is explicitly configured, otherwise it shares the same source as the warehouse
 
-## 目录结构
+## Directory structure
 
 ```
 demo/
-├── frontend/                       # Vue 3 + Vite，开发端口 5173
+├── frontend/                       # Vue 3 + Vite, dev port 5173
 │   ├── src/
-│   │   ├── App.vue                 # 侧边栏 + 顶栏 + 双视图切换
-│   │   ├── api/index.js            # 统一请求层（fetch 封装 + 错误映射 + qs 拼接）
-│   │   ├── composables/useDw.js    # 取数状态、周期计算与截断、watch 自动重载
+│   │   ├── App.vue                 # sidebar + top bar + dual-view switching
+│   │   ├── api/index.js            # unified request layer (fetch wrapper + error mapping + qs concatenation)
+│   │   ├── composables/useDw.js    # data-fetch state, period calculation and trimming, watch-based auto-reload
 │   │   ├── components/
-│   │   │   ├── DepartmentBoard.vue # 部门看板（4 张对比图 + 明细弹窗）
-│   │   │   ├── ProjectBoard.vue    # 项目看板（4 张趋势图 + 明细弹窗）
-│   │   │   └── TrendChart.vue      # ECharts 封装（line/bar、百分比轴、点击事件）
+│   │   │   ├── DepartmentBoard.vue # Department Board (4 comparison charts + details modal)
+│   │   │   ├── ProjectBoard.vue    # Project Board (4 trend charts + details modal)
+│   │   │   └── TrendChart.vue      # ECharts wrapper (line/bar, percentage axis, click events)
 │   │   ├── main.js
-│   │   └── style.css               # 全局样式与响应式布局
-│   ├── vite.config.js              # 5173 端口 + /api 代理 + 分包策略
+│   │   └── style.css               # global styles and responsive layout
+│   ├── vite.config.js              # port 5173 + /api proxy + chunk-splitting strategy
 │   └── package.json
 │
-├── backend/                        # Flask，开发端口 8000
-│   ├── app.py                      # 应用工厂：双 bind、CORS、错误处理、init-db
-│   ├── extensions.py               # SQLAlchemy 实例（独立存放避免循环导入）
-│   ├── dw_models.py                # 数仓 23 张表模型（dw bind）
-│   ├── cache.py                    # Redis 封装，异常静默降级
+├── backend/                        # Flask, dev port 8000
+│   ├── app.py                      # application factory: dual bind, CORS, error handling, init-db
+│   ├── extensions.py               # SQLAlchemy instance (kept separate to avoid circular imports)
+│   ├── dw_models.py                # models for the 23 warehouse tables (dw bind)
+│   ├── cache.py                    # Redis wrapper, silently falls back on exceptions
 │   ├── routes/
-│   │   └── dw.py                   # /api/dw/* 看板接口
+│   │   └── dw.py                   # /api/dw/* dashboard APIs
 │   ├── requirements.txt
 │   └── .env.example
 │
 └── database/
-    ├── etl/                        # 分层 ETL（pymysql 直连，非 ORM）
-    │   ├── config.py               # 连接配置与分层执行顺序
-    │   ├── db.py                   # 连接工厂
-    │   ├── source.py               # ODS：模拟 HR/PM/ITSM 源数据（固定随机种子）
-    │   ├── sync_dim.py             # DIM：SCD2 维度
-    │   ├── sync_dwd.py             # DWD：事实表清洗
-    │   ├── sync_dwm.py             # DWM：员工/项目日汇总
-    │   ├── sync_dws.py             # DWS：组织日汇总
-    │   ├── sync_ads.py             # ADS：组织/项目 × 周期 KPI
-    │   ├── runner.py               # 命令行入口与定时调度
-    │   └── test_etl.py             # 端到端集成测试（独立测试库，跑完删库）
-    ├── 数据库设计文档.md            # 分层方案与建表 DDL
-    └── 项目数据设计文档.md          # 项目维度的补充设计
+    ├── etl/                        # layered ETL (direct pymysql, not ORM)
+    │   ├── config.py               # connection config and layer execution order
+    │   ├── db.py                   # connection factory
+    │   ├── source.py               # ODS: simulated HR/PM/ITSM source data (fixed random seed)
+    │   ├── sync_dim.py             # DIM: SCD2 dimensions
+    │   ├── sync_dwd.py             # DWD: fact table cleaning
+    │   ├── sync_dwm.py             # DWM: employee/project daily summaries
+    │   ├── sync_dws.py             # DWS: organization daily summaries
+    │   ├── sync_ads.py             # ADS: organization/project x period KPIs
+    │   ├── runner.py               # CLI entry point and scheduled execution
+    │   └── test_etl.py             # end-to-end integration tests (separate test database, dropped after the run)
+    ├── DATABASE_DESIGN.md          # layering scheme and table-creation DDL
+    └── PROJECT_DATA_DESIGN.md      # supplementary design for the project dimension
 ```
 
-## 快速开始
+## Quick start
 
-**前置依赖**：Python 3.10+、Node.js 18+、MySQL 8（utf8mb4）；Redis 可选。
+**Prerequisites**: Python 3.10+, Node.js 18+, MySQL 8 (utf8mb4); Redis is optional.
 
-### 1. 创建数据库
+### 1. Create the database
 
 ```sql
 CREATE DATABASE `5003` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
-### 2. 配置后端环境变量
+### 2. Configure back-end environment variables
 
 ```bash
 cd backend
 cp .env.example .env        # Windows: Copy-Item .env.example .env
 ```
 
-编辑 `.env`，确认数仓库连接串（默认 bind 无需配置，未设置时与它同源）：
+Edit `.env` and confirm the warehouse connection string (the default bind needs no configuration; when unset it shares the same source):
 
 ```dotenv
 DW_DATABASE_URL=mysql+pymysql://root:your_password@127.0.0.1:3306/5003?charset=utf8mb4
 ```
 
-### 3. 建表并灌数据
+### 3. Create tables and load data
 
 ```bash
-# 仍在 backend/ 目录，先装依赖
+# Still in the backend/ directory, install dependencies first
 python -m venv .venv
-.\.venv\Scripts\Activate.ps1          # PowerShell；macOS/Linux: source .venv/bin/activate
+.\.venv\Scripts\Activate.ps1          # PowerShell; macOS/Linux: source .venv/bin/activate
 pip install -r requirements.txt
 
-# 建表：create_all 会同时作用于默认库和 dw 库，共 23 张数仓表
+# Create tables: create_all applies to both the default and dw databases, 23 warehouse tables in total
 flask --app app init-db
 
-# 执行全量 ETL（回到仓库根目录，避免模块导入问题）
+# Run the full ETL (return to the repository root to avoid module import issues)
 cd ..
 python -m database.etl.runner --once
 ```
 
-ETL 会模拟近 365 天的 HR / 需求 / 故障数据，逐层写入 `5003`，随机种子固定（`20251124`），重复执行结果可复现。
+The ETL simulates nearly 365 days of HR / requirement / incident data and writes it layer by layer into `5003`; the random seed is fixed (`20251124`), so repeated runs are reproducible.
 
-### 4. 启动后端
+### 4. Start the back end
 
 ```bash
 cd backend
 python app.py                # http://127.0.0.1:8000
 ```
 
-### 5. 启动前端
+### 5. Start the front end
 
 ```bash
 cd frontend
@@ -159,153 +159,153 @@ npm install
 npm run dev                  # http://localhost:5173
 ```
 
-开发期 Vite 把 `/api` 代理到 `http://127.0.0.1:8000`，浏览器视角同源，无需额外配置 CORS。
+During development Vite proxies `/api` to `http://127.0.0.1:8000`; from the browser's perspective this is same-origin, so no extra CORS configuration is needed.
 
-## 环境变量
+## Environment variables
 
-`backend/.env`（模板见 `backend/.env.example`）：
+`backend/.env` (see `backend/.env.example` for the template):
 
-| 变量 | 说明 | 默认值 |
+| Variable | Description | Default |
 |---|---|---|
-| `DATABASE_URL` | 默认 bind（占位，无模型）；不设置时与 `DW_DATABASE_URL` 同源 | 同 `DW_DATABASE_URL` |
-| `DW_DATABASE_URL` | 数仓库连接串（`dw` bind） | `mysql+pymysql://root:root@127.0.0.1:3306/5003` |
-| `PORT` | 后端监听端口 | `8000` |
-| `SECRET_KEY` | Flask 密钥 | `dev-only-secret` |
-| `CORS_ORIGINS` | 允许来源，逗号分隔 | `*` |
-| `FLASK_DEBUG` | 设为 `1` 开启调试 | `0` |
-| `REDIS_HOST` / `REDIS_PORT` / `REDIS_DB` | 缓存连接 | `127.0.0.1` / `6379` / `0` |
-| `DW_CACHE_TTL` | 缓存过期秒数 | `86400` |
+| `DATABASE_URL` | Default bind (placeholder, no models); when unset, shares the same source as `DW_DATABASE_URL` | Same as `DW_DATABASE_URL` |
+| `DW_DATABASE_URL` | Warehouse connection string (`dw` bind) | `mysql+pymysql://root:root@127.0.0.1:3306/5003` |
+| `PORT` | Back-end listening port | `8000` |
+| `SECRET_KEY` | Flask secret key | `dev-only-secret` |
+| `CORS_ORIGINS` | Allowed origins, comma-separated | `*` |
+| `FLASK_DEBUG` | Set to `1` to enable debug mode | `0` |
+| `REDIS_HOST` / `REDIS_PORT` / `REDIS_DB` | Cache connection | `127.0.0.1` / `6379` / `0` |
+| `DW_CACHE_TTL` | Cache TTL in seconds | `86400` |
 
-ETL 不走 `.env`，直接读环境变量（未设置则用括号内默认值）：`DW_DB_HOST`（`127.0.0.1`）、`DW_DB_USER`（`root`）、`DW_DB_PASSWORD`（`root`）、`DW_DB_PORT`（`3306`）、`DW_DB_NAME`（`5003`）、`DW_RUN_TIME`（`02:00`）。
+The ETL does not use `.env`; it reads environment variables directly (using the values in parentheses when unset): `DW_DB_HOST` (`127.0.0.1`), `DW_DB_USER` (`root`), `DW_DB_PASSWORD` (`root`), `DW_DB_PORT` (`3306`), `DW_DB_NAME` (`5003`), `DW_RUN_TIME` (`02:00`).
 
-`frontend/.env.development` / `.env.production`：
+`frontend/.env.development` / `.env.production`:
 
-| 变量 | 说明 | 默认值 |
+| Variable | Description | Default |
 |---|---|---|
-| `VITE_API_BASE_URL` | API 前缀 | `/api` |
+| `VITE_API_BASE_URL` | API prefix | `/api` |
 
 ## API
 
-所有响应统一为 `{ "code": 0, "message": "ok", "data": ... }`，`code` 非 0 即失败；HTTP 状态码同时反映错误（400 / 404 / 500 / 503）。
+All responses use the shape `{ "code": 0, "message": "ok", "data": ... }`; a non-zero `code` indicates failure, and HTTP status codes also reflect errors (400 / 404 / 500 / 503).
 
-**组织维度（部门看板）**
+**Organization dimension (Department Board)**
 
-| 方法 | 路径 | 说明 |
+| Method | Path | Description |
 |---|---|---|
-| GET | `/api/health` | 健康检查，验证业务库可达 |
-| GET | `/api/dw/health` | 数仓各表行数 |
-| GET | `/api/dw/meta` | 组织维度、周期枚举与维度清单 |
-| GET | `/api/dw/board` | 组织看板，返回 PR + EC 合并指标 |
-| GET | `/api/dw/kpi/pr` | PR 需求 KPI 明细 |
-| GET | `/api/dw/kpi/ec` | EC 故障 KPI 明细 |
+| GET | `/api/health` | Health check, verifies the business database is reachable |
+| GET | `/api/dw/health` | Row counts of all warehouse tables |
+| GET | `/api/dw/meta` | Organization dimensions, period enums and dimension list |
+| GET | `/api/dw/board` | Organization dashboard, returns merged PR + EC metrics |
+| GET | `/api/dw/kpi/pr` | PR requirement KPI details |
+| GET | `/api/dw/kpi/ec` | EC incident KPI details |
 
-**项目维度（项目看板）**
+**Project dimension (Project Board)**
 
-| 方法 | 路径 | 说明 |
+| Method | Path | Description |
 |---|---|---|
-| GET | `/api/dw/project/meta` | 项目清单 |
-| GET | `/api/dw/project/board` | 项目 PR 趋势数据 |
-| GET | `/api/dw/project/ec` | 项目 EC 趋势数据 |
-| GET | `/api/dw/project/kpi` | 项目 PR KPI 明细（支持单项目过滤） |
+| GET | `/api/dw/project/meta` | Project list |
+| GET | `/api/dw/project/board` | Project PR trend data |
+| GET | `/api/dw/project/ec` | Project EC trend data |
+| GET | `/api/dw/project/kpi` | Project PR KPI details (supports single-project filtering) |
 
-**其他**
+**Other**
 
-| 方法 | 路径 | 说明 |
+| Method | Path | Description |
 |---|---|---|
-| POST | `/api/dw/cache/clear` | 清空 `dw:` 前缀缓存，返回清除条数 |
+| POST | `/api/dw/cache/clear` | Clears `dw:`-prefixed cache entries and returns the number removed |
 
-**查询参数**
+**Query parameters**
 
-- `org_type`：`department` / `team` / `domain` / `employee`（前端看板不展示 `employee`）
-- `period_type`：`week` / `month` / `quarter` / `halfyear` / `year`
-- `period_value`：如 `2026-11`、`2026-Q4`、`2026-H2`、`2026-W46`、`2026`
-- `org_id` / `project_id`：按维度主键过滤
+- `org_type`: `department` / `team` / `domain` / `employee` (`employee` is not shown in the front-end boards)
+- `period_type`: `week` / `month` / `quarter` / `halfyear` / `year`
+- `period_value`: e.g. `2026-11`, `2026-Q4`, `2026-H2`, `2026-W46`, `2026`
+- `org_id` / `project_id`: filter by dimension primary key
 
 ```bash
 curl "http://127.0.0.1:8000/api/dw/board?org_type=department&period_type=month"
 ```
 
-## 指标口径
+## Metric definitions
 
-| 指标 | 公式 | 说明 |
+| Metric | Formula | Description |
 |---|---|---|
-| 需求完成率 | 需求完成数 ÷ 需求承接数 | 承接按 `assign_date`、完成按 `complete_date` 分别聚合后合并 |
-| 准时交付率 | 准时交付数 ÷ 应交付数 | 应交付取当期已完成需求（`complete_date` 非空），准时指 `complete_date <= due_date` |
-| 平均处理时长 | 处理天数总和 ÷ 完成数 | 单位：天，`process_days = complete_date - assign_date` |
-| 返工率 | 返工数 ÷ 完成数 | 源数据 `rework_flag` |
-| 故障解决率 | 故障解决数 ÷ 故障发现数 | 发现按 `found_at`、解决按 `resolved_at` |
-| 平均响应时长 | 响应时长总和 ÷ 故障数 | 单位：分钟，`first_response_at - found_at` |
-| 平均解决时长 | 解决时长总和 ÷ 解决数 | 单位：分钟 |
-| 复发率 | 复发数 ÷ 解决数 | 源数据 `recur_flag` |
+| Requirement Completion Rate | Requirements Completed / Requirements Assigned | assigned is aggregated by `assign_date` and completed by `complete_date`, then merged |
+| On-time Delivery Rate | On-time Deliveries / Requirements Due | requirements due is taken as requirements completed in the current period (`complete_date` is not null); on-time means `complete_date <= due_date` |
+| Avg. Processing Time | Total Processing Days / Requirements Completed | unit: days, `process_days = complete_date - assign_date` |
+| Rework Rate | Reworked Requirements / Requirements Completed | source field `rework_flag` |
+| Incident Resolution Rate | Incidents Resolved / Incidents Found | found is based on `found_at`, resolved on `resolved_at` |
+| Avg. Response Time | Total Response Time / Incidents | unit: min, `first_response_at - found_at` |
+| Avg. Resolution Time | Total Resolution Time / Incidents Resolved | unit: min |
+| Recurrence Rate | Recurring Incidents / Incidents Resolved | source field `recur_flag` |
 
-`pr_work_hours_ratio`（工时占比）字段已预留，ETL 当前写入 `NULL`。
+The `pr_work_hours_ratio` (work-hours ratio) field is reserved; the ETL currently writes `NULL`.
 
-## 数据模型
+## Data model
 
-数仓 23 张表，模型定义见 `backend/dw_models.py`：
+The warehouse has 23 tables; model definitions are in `backend/dw_models.py`:
 
-| 层 | 表 | 说明 |
+| Layer | Tables | Description |
 |---|---|---|
-| ODS | `ods_hr_employee`、`ods_pm_pr`、`ods_itsm_ec`、`ods_pm_project` | 源系统落地，含 ETL 审计字段（`etl_load_time` / `etl_batch_id` / `etl_operation`） |
-| DIM | `dim_employee`、`dim_department`、`dim_team`、`dim_domain`、`dim_project`、`dim_date`、`dim_severity` | 组织/项目维度为 SCD2（`is_current` + 生效失效区间），`dim_date` 为日期维 |
-| DWD | `dwd_pr_fact`、`dwd_ec_fact` | 事实表，含 `is_on_time`、`process_days`、`response_minutes` 等派生列 |
-| DWM | `dwm_pr_emp_1d`、`dwm_ec_emp_1d`、`dwm_pr_project_1d`、`dwm_ec_project_1d` | 员工 / 项目 × 日粒度汇总 |
-| DWS | `dws_pr_org_1d`、`dws_ec_org_1d` | 组织（部门/团队/领域/员工）× 日粒度汇总 |
-| ADS | `ads_pr_kpi`、`ads_ec_kpi`、`ads_pr_project_kpi`、`ads_ec_project_kpi` | 组织/项目 × 周期 KPI，接口直接查询这一层 |
+| ODS | `ods_hr_employee`, `ods_pm_pr`, `ods_itsm_ec`, `ods_pm_project` | Source-system landing, with ETL audit fields (`etl_load_time` / `etl_batch_id` / `etl_operation`) |
+| DIM | `dim_employee`, `dim_department`, `dim_team`, `dim_domain`, `dim_project`, `dim_date`, `dim_severity` | Organization/project dimensions use SCD2 (`is_current` + effective/expiry range); `dim_date` is the date dimension |
+| DWD | `dwd_pr_fact`, `dwd_ec_fact` | Fact tables with derived columns such as `is_on_time`, `process_days` and `response_minutes` |
+| DWM | `dwm_pr_emp_1d`, `dwm_ec_emp_1d`, `dwm_pr_project_1d`, `dwm_ec_project_1d` | Employee / project x daily-grain summaries |
+| DWS | `dws_pr_org_1d`, `dws_ec_org_1d` | Organization (department/team/domain/employee) x daily-grain summaries |
+| ADS | `ads_pr_kpi`, `ads_ec_kpi`, `ads_pr_project_kpi`, `ads_ec_project_kpi` | Organization/project x period KPIs; APIs query this layer directly |
 
-建表 DDL 见 `database/数据库设计文档.md`（分层方案 + 17 张核心表）与 `database/项目数据设计文档.md`（项目维度补充）；最省事的做法是直接 `flask --app app init-db`，由 ORM 完整生成 23 张表（含文档尚未收录的 `dwm_ec_project_1d`、`ads_ec_project_kpi`）。
+Table-creation DDL is in `database/DATABASE_DESIGN.md` (layering scheme + 17 core tables) and `database/PROJECT_DATA_DESIGN.md` (project-dimension supplement); the simplest approach is to run `flask --app app init-db` and let the ORM generate all 23 tables (including `dwm_ec_project_1d` and `ads_ec_project_kpi`, which are not yet documented).
 
-### ETL 使用
+### ETL usage
 
 ```bash
-python -m database.etl.runner --once                # 全量跑一遍（ods→dim→dwd→dwm→dws→ads）
-python -m database.etl.runner --once --layer ads    # 只重跑某一层
-python -m database.etl.runner --schedule            # 常驻进程，每日 02:00 执行
+python -m database.etl.runner --once                # run the full pipeline once (ods→dim→dwd→dwm→dws→ads)
+python -m database.etl.runner --once --layer ads    # re-run only one layer
+python -m database.etl.runner --schedule            # long-running process, executes daily at 02:00
 python -m database.etl.runner --schedule --time 03:30
 ```
 
-每层执行前先 `DELETE` 目标表再全量写入，因此可反复执行；层间强依赖，改上游需按 `ORDER` 顺序重跑下游。
+Before each layer runs, it first `DELETE`s the target table and then performs a full load, so it can be run repeatedly; layers are strongly dependent, so after changing an upstream layer you must re-run downstream layers in `ORDER` sequence.
 
-## 缓存策略
+## Caching strategy
 
-- 所有 `/api/dw/*` 读接口按「接口名 + 全部查询参数」拼 Redis key，前缀 `dw:`，默认 TTL 24 小时
-- `cache.py` 对 Redis 异常全部静默吞掉：连不上就当作未命中，接口照常回源，**本地不装 Redis 也能跑**
-- ETL 重跑后数据会变，需要主动 `POST /api/dw/cache/clear` 或点前端"刷新缓存"按钮
+- All `/api/dw/*` read endpoints build a Redis key from "endpoint name + all query parameters", prefixed with `dw:`, with a default TTL of 24 hours
+- `cache.py` silently swallows all Redis exceptions: if it cannot connect, the request is treated as a cache miss and the endpoint falls back to the source as usual, so it runs fine without Redis installed locally
+- Data changes after an ETL re-run, so you need to call `POST /api/dw/cache/clear` or click the front-end "Clear Cache" button
 
-## 测试
+## Testing
 
-`database/etl/test_etl.py` 是数仓链路的端到端集成测试。它在**独立测试库** `dw_etl_test` 中建表、跑完整条链路（ODS → DIM → DWD → DWM → DWS → ADS）、逐层校验，跑完自动删库，**不会读写生产库 `5003`**。
+`database/etl/test_etl.py` is the end-to-end integration test for the warehouse pipeline. It creates tables in a **separate test database** `dw_etl_test`, runs the whole chain (ODS → DIM → DWD → DWM → DWS → ADS), verifies each layer, and drops the database automatically afterwards; it **never reads or writes the production database `5003`**.
 
 ```bash
 cd D:/code/codex_start/demo
-backend/.venv/Scripts/python.exe database/etl/test_etl.py -v        # 逐条显示
-backend/.venv/Scripts/python.exe database/etl/test_etl.py --keep    # 保留测试库便于查数
+backend/.venv/Scripts/python.exe database/etl/test_etl.py -v        # show results one by one
+backend/.venv/Scripts/python.exe database/etl/test_etl.py --keep    # keep the test database for inspection
 ```
 
-前置条件：MySQL 已启动，`database/etl/config.py` 里的 `DW_DB_*` 可连。MySQL 不可用时测试会**自动跳过**而不是报错。
+Prerequisites: MySQL is running and the `DW_DB_*` settings in `database/etl/config.py` are connectable. When MySQL is unavailable, the tests **skip automatically** rather than failing.
 
-| 用例 | 校验的契约 |
+| Case | Contract verified |
 |---|---|
-| 01 | ODS 源数据规模（18 员工 / 20 项目 / PR 与 EC 非空） |
-| 02 | `dim_date` 覆盖三年且包含今天 |
-| 03 | DWD `is_on_time`、`process_days` 能由 ODS 原始日期反算 |
-| 04 | DWD `response_minutes`、`resolve_minutes` 等于 ODS 时间戳之差 |
-| 05 | DWS 部门/团队/领域汇总逐日等于员工级之和 |
-| 06 | ADS 完成率、准时率、平均处理天数能由分子分母反算 |
-| 07 | ADS 覆盖 5 种周期 × 4 种组织维度 |
-| 08 | 重跑 DIM→ADS 后各层行数不变（幂等） |
-| 09 | DWS 工时汇总等于 DWD 已完成需求工时之和 |
+| 01 | ODS source data volume (18 employees / 20 projects / PR and EC non-empty) |
+| 02 | `dim_date` covers three years and includes today |
+| 03 | DWD `is_on_time` and `process_days` can be recomputed from raw ODS dates |
+| 04 | DWD `response_minutes` and `resolve_minutes` equal the differences of ODS timestamps |
+| 05 | DWS department/team/domain summaries equal the sum of employee-level values for each day |
+| 06 | ADS completion rate, on-time rate and average processing days can be recomputed from numerators and denominators |
+| 07 | ADS covers 5 period types x 4 organization dimensions |
+| 08 | Row counts remain unchanged after re-running DIM→ADS (idempotent) |
+| 09 | DWS work-hour summaries equal the sum of completed-requirement work hours in DWD |
 
-测试库名可用 `DW_TEST_DB` 覆盖。
+The test database name can be overridden with `DW_TEST_DB`.
 
-## 构建与部署
+## Build and deployment
 
 ```bash
 cd frontend
-npm run build                # 产物在 frontend/dist，按 vue / charts 分包
+npm run build                # output goes to frontend/dist, split into vue / charts chunks
 ```
 
-Nginx 同域部署（前端静态资源 + `/api` 反代，避免跨域）：
+Same-origin deployment with Nginx (front-end static assets + `/api` reverse proxy, avoiding cross-origin issues):
 
 ```nginx
 server {
@@ -328,21 +328,21 @@ server {
 }
 ```
 
-后端生产环境用 WSGI 服务器，关闭 `FLASK_DEBUG`，并把 `CORS_ORIGINS` 收紧到实际域名：
+In production, run the back end with a WSGI server, turn off `FLASK_DEBUG`, and tighten `CORS_ORIGINS` to the actual domain:
 
 ```bash
 pip install waitress
 waitress-serve --host 127.0.0.1 --port 8000 app:create_app
 ```
 
-## 已知限制
+## Known limitations
 
-- `source.py` 是模拟数据源，接真实系统需替换该模块的抽取逻辑
-- 只读接口，无鉴权与写操作（除清缓存）
-- `pr_work_hours_ratio` 尚未计算
+- `source.py` is a simulated data source; connecting real systems requires replacing this module's extraction logic
+- Read-only APIs, no authentication and no write operations (except clearing the cache)
+- `pr_work_hours_ratio` is not yet calculated
 
-## 文档
+## Documentation
 
-- `database/数据库设计文档.md` —— 数仓分层方案、表结构与 DDL
-- `database/项目数据设计文档.md` —— 项目维度建模与接口映射
-- `database/员工目录-KPI指标地图.md` —— 指标与组织维度的对照关系
+- `database/DATABASE_DESIGN.md` — warehouse layering scheme, table structures and DDL
+- `database/PROJECT_DATA_DESIGN.md` — project-dimension modeling and API mapping
+- `database/EMPLOYEE_DIRECTORY_KPI_MAP.md` — mapping between metrics and organization dimensions

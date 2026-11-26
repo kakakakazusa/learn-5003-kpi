@@ -18,7 +18,7 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      // 开发期把 /api 转发到 Flask，浏览器视角同源，无需 CORS
+      // In development, forward /api to Flask; same-origin from the browser's perspective, so no CORS needed
       '/api': {
         target: 'http://127.0.0.1:8000',
         changeOrigin: true,

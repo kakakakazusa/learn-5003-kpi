@@ -1,4 +1,4 @@
-# ============ 通用 ============
+# ============ General ============
 .DS_Store
 Thumbs.db
 desktop.ini
@@ -21,33 +21,33 @@ ENV/
 .mypy_cache/
 .ipynb_checkpoints/
 
-# ============ 环境变量与密钥 ============
-# .env 里是数据库密码 / SECRET_KEY，绝对不要提交
+# ============ Environment variables and secrets ============
+# .env holds database passwords / SECRET_KEY — never commit it
 .env
 .env.local
 .env.*.local
-# 但模板要保留，方便别人复现
+# Keep the template so others can reproduce the setup
 !.env.example
 
-# ============ 本地数据库 ============
-# SQLite 是本地开发数据，用 ETL 脚本可重建
+# ============ Local databases ============
+# SQLite files are local dev data and can be rebuilt with the ETL scripts
 instance/
 *.db
 *.sqlite3
 *.db-journal
 
-# ============ 前端 ============
+# ============ Frontend ============
 node_modules/
 dist/
 dist-ssr/
 *.local
 
-# ============ 工具 / 本地工作区 ============
-# .workbuddy 是本机 Agent 工作区与记忆，不入库
+# ============ Tooling / local workspace ============
+# .workbuddy is the local agent workspace and memory — keep it out of git
 .workbuddy/
 .history/
 
-# ============ 临时文件 ============
+# ============ Temporary files ============
 tmp/
 temp/
 *.tmp

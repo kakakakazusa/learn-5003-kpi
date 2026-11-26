@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-"""Redis 缓存封装（取数接口缓存）。
+"""Redis cache wrapper (for data-fetching API caching).
 
-Redis 不可用时自动降级：get 返回 None，set/clear 忽略异常。
+Automatically falls back when Redis is unavailable: get returns None, set/clear ignore exceptions.
 """
 import json
 import os

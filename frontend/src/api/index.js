@@ -1,4 +1,4 @@
-// 开发期走 Vite 代理(/api)，生产期走 Nginx 同域反代
+// Use the Vite proxy (/api) in development and the same-origin Nginx reverse proxy in production
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
 
 async function request(path, options = {}) {
@@ -9,7 +9,7 @@ async function request(path, options = {}) {
       ...options,
     })
   } catch {
-    throw new Error('无法连接后端服务，请确认 Flask 已启动')
+    throw new Error('Cannot connect to the backend service; make sure Flask is running')
   }
 
   const isJson = (res.headers.get('content-type') || '').includes('application/json')
@@ -17,15 +17,15 @@ async function request(path, options = {}) {
 
   if (!res.ok) {
     const fallback = res.status >= 500
-      ? '后端服务暂不可用，请确认 Flask 已启动'
+      ? 'Backend service temporarily unavailable; make sure Flask is running'
       : `HTTP ${res.status}: ${res.statusText}`
     throw new Error(body?.message || fallback)
   }
   if (!body) {
-    throw new Error('接口返回了非 JSON 响应，请检查代理或后端配置')
+    throw new Error('The API returned a non-JSON response; check the proxy or backend configuration')
   }
   if (body.code !== 0) {
-    throw new Error(body.message || '请求失败')
+    throw new Error(body.message || 'Request failed')
   }
   return body.data
 }
@@ -38,12 +38,12 @@ function qs(params) {
 }
 
 export const api = {
-  // 数仓库：组织维度（部门看板）
+  // Warehouse: organization dimension (Department Board)
   dwMeta: () => request('/dw/meta'),
   dwBoard: (orgType, periodType) => request(`/dw/board?org_type=${encodeURIComponent(orgType)}&period_type=${encodeURIComponent(periodType)}`),
   dwClearCache: () => request('/dw/cache/clear', { method: 'POST' }),
 
-  // 数仓库：项目维度（项目看板）
+  // Warehouse: project dimension (Project Board)
   dwProjectMeta: () => request('/dw/project/meta'),
   dwProjectBoard: (periodType) => request(`/dw/project/board?period_type=${encodeURIComponent(periodType)}`),
   dwProjectKpi: (params) => request(`/dw/project/kpi?${qs(params)}`),

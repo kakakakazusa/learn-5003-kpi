@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""数据库连接。"""
+"""Database connection."""
 import pymysql
 
 from . import config

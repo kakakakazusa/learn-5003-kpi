@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""ADS 应用层同步（组织 × 周期 KPI）。"""
+"""ADS application layer sync (organization x period KPI)."""
 
 
 def sync(conn):
@@ -80,4 +80,4 @@ def sync(conn):
 
     conn.commit()
     cur.close()
-    print("ADS 层同步完成")
+    print("ADS layer sync complete")

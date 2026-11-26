@@ -1,21 +1,21 @@
 # -*- coding: utf-8 -*-
-"""ODS 层：模拟业务系统源数据并全量写入 ODS。
+"""ODS layer: simulate business-system source data and write it in full to ODS.
 
-真实环境应将 `load_source` 替换为从 HR / PM / ITSM 系统的抽取逻辑。
+In a real environment, replace `load_source` with extraction logic from the HR / PM / ITSM systems.
 """
 import random
 from datetime import date, datetime, timedelta
 
-DEPARTMENTS = [(1, "研发部"), (2, "产品部"), (3, "运营部")]
-TEAMS = [(101, "后端组", 1), (102, "前端组", 1), (103, "数据组", 1),
-         (201, "平台组", 2), (202, "增长组", 2), (301, "客户成功组", 3)]
-DOMAINS = [(10, "技术研发"), (20, "产品设计"), (30, "业务运营"), (40, "数据智能")]
-POSITIONS = ["初级工程师", "高级工程师", "产品经理", "运营专员", "数据分析师"]
+DEPARTMENTS = [(1, "Engineering"), (2, "Product"), (3, "Operations")]
+TEAMS = [(101, "Backend", 1), (102, "Frontend", 1), (103, "Data", 1),
+         (201, "Platform", 2), (202, "Growth", 2), (301, "Customer Success", 3)]
+DOMAINS = [(10, "Engineering"), (20, "Product Design"), (30, "Business Operations"), (40, "Data Intelligence")]
+POSITIONS = ["Junior Engineer", "Senior Engineer", "Product Manager", "Operations Specialist", "Data Analyst"]
 SEVERITIES = ["P0", "P1", "P2", "P3", "P3"]
 
 
 def load_source(conn):
-    """全量重建 ODS 源数据（模拟业务系统每日全量同步）。"""
+    """Rebuild all ODS source data (simulating a daily full sync from business systems)."""
     cur = conn.cursor()
     rng = random.Random(20251124)
     today = date.today()
@@ -30,7 +30,7 @@ def load_source(conn):
             domain_id, domain_name = DOMAINS[didx]
             employees.append({
                 "employee_id": eid,
-                "employee_name": "员工%03d" % eid,
+                "employee_name": "Employee %03d" % eid,
                 "department_id": did,
                 "department_name": dname,
                 "team_id": tid,
@@ -39,7 +39,7 @@ def load_source(conn):
                 "domain_name": domain_name,
                 "position": POSITIONS[eid % len(POSITIONS)],
                 "job_level": "P%d" % (eid % 4 + 1),
-                "employment_status": "在职",
+                "employment_status": "Active",
                 "join_date": (start - timedelta(days=rng.randint(0, 365))).isoformat(),
                 "manager_id": None if eid <= 3 else ((eid - 1) // 6) * 6 + 1,
             })
@@ -49,8 +49,8 @@ def load_source(conn):
     for pid in range(1, 21):
         projects.append({
             "project_id": pid,
-            "project_name": "项目-%d" % pid,
-            "project_status": rng.choice(["进行中", "已完成", "已关闭"]),
+            "project_name": "Project-%d" % pid,
+            "project_status": rng.choice(["In Progress", "Completed", "Closed"]),
             "owner_employee_id": rng.choice([e["employee_id"] for e in employees]),
             "start_date": (start - timedelta(days=rng.randint(0, 365))).isoformat(),
             "end_date": (today + timedelta(days=rng.randint(30, 365))).isoformat(),
@@ -70,12 +70,12 @@ def load_source(conn):
                 assign = d
                 due = assign + timedelta(days=rng.randint(1, 10))
                 complete = None
-                status = rng.choice(["进行中", "已完成", "已完成", "已关闭"])
-                if status in ("已完成", "已关闭"):
+                status = rng.choice(["In Progress", "Completed", "Completed", "Closed"])
+                if status in ("Completed", "Closed"):
                     complete = assign + timedelta(days=rng.randint(1, 12))
                 rework = 1 if rng.random() < 0.12 else 0
                 hours = round(rng.uniform(2, 40), 2)
-                pr_rows.append((pr_seq, "需求-%d" % rng.randint(1000, 9999),
+                pr_rows.append((pr_seq, "Requirement-%d" % rng.randint(1000, 9999),
                                 emp_id, rng.randint(1, 20), assign.isoformat(),
                                 due.isoformat(), complete.isoformat() if complete else None,
                                 status, rework, hours))
@@ -84,12 +84,12 @@ def load_source(conn):
                 found = datetime.combine(d, datetime.min.time()) + timedelta(hours=rng.randint(0, 20))
                 first_response = found + timedelta(minutes=rng.randint(5, 240))
                 resolved = first_response + timedelta(minutes=rng.randint(30, 2880)) if rng.random() < 0.9 else None
-                ec_rows.append((ec_seq, "故障-%d" % rng.randint(1000, 9999),
+                ec_rows.append((ec_seq, "Incident-%d" % rng.randint(1000, 9999),
                                 emp_id, rng.randint(1, 20), rng.choice(SEVERITIES),
                                 found.strftime("%Y-%m-%d %H:%M:%S"),
                                 first_response.strftime("%Y-%m-%d %H:%M:%S"),
                                 resolved.strftime("%Y-%m-%d %H:%M:%S") if resolved else None,
-                                "已解决" if resolved else "处理中",
+                                "Resolved" if resolved else "In Progress",
                                 1 if rng.random() < 0.08 else 0))
                 ec_seq += 1
 
@@ -133,4 +133,4 @@ def load_source(conn):
     )
     conn.commit()
     cur.close()
-    print("ODS 源数据已加载：员工 %d，项目 %d，PR %d，EC %d" % (len(employees), len(projects), len(pr_rows), len(ec_rows)))
+    print("ODS source data loaded: employees %d, projects %d, PR %d, EC %d" % (len(employees), len(projects), len(pr_rows), len(ec_rows)))

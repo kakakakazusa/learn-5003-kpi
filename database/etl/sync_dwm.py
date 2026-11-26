@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""DWM 中间层同步。"""
+"""DWM intermediate layer sync."""
 
 
 def sync(conn):
@@ -9,7 +9,7 @@ def sync(conn):
     cur.execute("DELETE FROM dwm_pr_project_1d")
     cur.execute("DELETE FROM dwm_ec_project_1d")
 
-    # PR：承接按 assign_date，完成按 complete_date，分两次聚合后合并
+    # PR: assigned by assign_date, completed by complete_date; aggregate twice and then merge
     cur.execute("""INSERT INTO dwm_pr_emp_1d (stat_date, employee_id, pr_assign_cnt)
         SELECT d.full_date, f.employee_id, COUNT(*)
         FROM dwd_pr_fact f JOIN dim_date d ON d.date_key = f.assign_date_key
@@ -32,7 +32,7 @@ def sync(conn):
           pr_process_days_sum = VALUES(pr_process_days_sum),
           pr_work_hours_sum = VALUES(pr_work_hours_sum)""")
 
-    # EC：发现按 found，解决按 resolved
+    # EC: found by found, resolved by resolved
     cur.execute("""INSERT INTO dwm_ec_emp_1d (stat_date, employee_id, ec_found_cnt, ec_response_minutes_sum)
         SELECT d.full_date, f.employee_id, COUNT(*), SUM(f.response_minutes)
         FROM dwd_ec_fact f JOIN dim_date d ON d.date_key = f.found_date_key
@@ -54,7 +54,7 @@ def sync(conn):
           ec_severe_cnt = VALUES(ec_severe_cnt),
           ec_resolve_minutes_sum = VALUES(ec_resolve_minutes_sum)""")
 
-    # 项目维度：按 project_id 聚合（承接按 assign_date，完成按 complete_date）
+    # Project dimension: aggregate by project_id (assigned by assign_date, completed by complete_date)
     cur.execute("""INSERT INTO dwm_pr_project_1d (stat_date, project_id, pr_assign_cnt)
         SELECT d.full_date, f.project_id, COUNT(*)
         FROM dwd_pr_fact f JOIN dim_date d ON d.date_key = f.assign_date_key
@@ -77,7 +77,7 @@ def sync(conn):
           pr_process_days_sum = VALUES(pr_process_days_sum),
           pr_work_hours_sum = VALUES(pr_work_hours_sum)""")
 
-    # EC 项目维度：按 project_id 聚合（发现按 found，解决按 resolved）
+    # EC project dimension: aggregate by project_id (found by found, resolved by resolved)
     cur.execute("""INSERT INTO dwm_ec_project_1d (stat_date, project_id, ec_found_cnt, ec_response_minutes_sum)
         SELECT d.full_date, f.project_id, COUNT(*), SUM(f.response_minutes)
         FROM dwd_ec_fact f JOIN dim_date d ON d.date_key = f.found_date_key
@@ -101,4 +101,4 @@ def sync(conn):
 
     conn.commit()
     cur.close()
-    print("DWM 层同步完成")
+    print("DWM layer sync complete")

@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
-"""ETL 调度与命令行入口。
+"""ETL scheduling and command-line entry point.
 
-用法：
-    python -m database.etl.runner --once              # 立即执行一次全量同步
-    python -m database.etl.runner --layer dws         # 只同步指定层
-    python -m database.etl.runner --schedule          # 进入定时循环，每日 02:00 执行
-    python -m database.etl.runner --once --time 03:30 # 指定每日执行时间
+Usage:
+    python -m database.etl.runner --once              # Run one full sync immediately
+    python -m database.etl.runner --layer dws         # Sync only the specified layer
+    python -m database.etl.runner --schedule          # Enter the scheduled loop, running daily at 02:00
+    python -m database.etl.runner --once --time 03:30 # Specify the daily run time
 """
 import argparse
 import sys
@@ -38,7 +38,7 @@ def run_layer(conn, layer):
     elif layer in LAYERS:
         LAYERS[layer](conn)
     else:
-        raise SystemExit("未知层：%s，可选 %s" % (layer, ["all"] + config.ORDER))
+        raise SystemExit("Unknown layer: %s, available: %s" % (layer, ["all"] + config.ORDER))
 
 
 def run_once(layer):
@@ -51,28 +51,28 @@ def run_once(layer):
 
 def schedule(layer, run_time):
     hh, mm = [int(x) for x in run_time.split(":")]
-    print("定时任务已启动：每日 %s 同步层 %s" % (run_time, layer))
+    print("Scheduled task started: daily %s sync of layer %s" % (run_time, layer))
     while True:
         now = datetime.now()
         next_run = now.replace(hour=hh, minute=mm, second=0, microsecond=0)
         if next_run <= now:
             next_run += timedelta(days=1)
         wait = (next_run - now).total_seconds()
-        print("下次执行：%s（%.0f 秒后）" % (next_run.strftime("%Y-%m-%d %H:%M:%S"), wait))
+        print("Next run: %s (in %.0f seconds)" % (next_run.strftime("%Y-%m-%d %H:%M:%S"), wait))
         time.sleep(wait)
         try:
             run_once(layer)
-            print("同步完成：%s" % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+            print("Sync complete: %s" % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         except Exception as exc:  # noqa: BLE001
-            print("同步失败：%s" % exc, file=sys.stderr)
+            print("Sync failed: %s" % exc, file=sys.stderr)
 
 
 def main():
-    parser = argparse.ArgumentParser(description="数仓分层定时同步脚本")
-    parser.add_argument("--layer", default="all", help="同步层：all/ods/dim/dwd/dwm/dws/ads")
-    parser.add_argument("--once", action="store_true", help="立即执行一次")
-    parser.add_argument("--schedule", action="store_true", help="进入定时循环")
-    parser.add_argument("--time", default=config.DEFAULT_RUN_TIME, help="每日执行时间 HH:MM")
+    parser = argparse.ArgumentParser(description="Layered warehouse scheduled sync script")
+    parser.add_argument("--layer", default="all", help="Layer to sync: all/ods/dim/dwd/dwm/dws/ads")
+    parser.add_argument("--once", action="store_true", help="Run once immediately")
+    parser.add_argument("--schedule", action="store_true", help="Enter the scheduled loop")
+    parser.add_argument("--time", default=config.DEFAULT_RUN_TIME, help="Daily run time HH:MM")
     args = parser.parse_args()
 
     if args.schedule:

@@ -1,12 +1,12 @@
-# idata 前端
+# idata Frontend
 
-Vue 3 + Vite + ECharts 的研发交付 KPI 看板。
+An engineering delivery KPI dashboard built with Vue 3 + Vite + ECharts.
 
 ```powershell
 npm install
-npm run dev      # http://localhost:5173，/api 代理到 127.0.0.1:8000
-npm run build    # 产物输出到 dist/
+npm run dev      # http://localhost:5173, /api proxied to 127.0.0.1:8000
+npm run build    # output written to dist/
 ```
 
-接口说明、数据库初始化和整体启动步骤见根目录 [README](../README.md)。
+For API documentation, database initialization, and overall startup steps, see the root [README](../README.md).
 

@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
-"""Flask 应用工厂。
+"""Flask application factory.
 
-模块职责拆分：
-- extensions.py  : db 实例
-- dw_models.py   : 数仓库（dw bind）模型
-- routes/        : 各业务蓝图
+Module responsibilities:
+- extensions.py  : db instance
+- dw_models.py   : warehouse (`dw` bind) models
+- routes/        : business blueprints
 """
 import os
 
@@ -28,8 +28,9 @@ def create_app():
     )
     app.config["SQLALCHEMY_BINDS"] = {"dw": dw_database_uri}
 
-    # 全部模型都在 dw bind（见 dw_models.BaseDW）；默认 bind 仅作占位，
-    # 未配置 DATABASE_URL 时直接与数仓库同源，不再需要额外的业务库。
+    # All models are on the dw bind (see dw_models.BaseDW); the default bind is only a placeholder.
+    # When DATABASE_URL is not set, it points to the same source as the warehouse,
+    # so no separate business database is needed.
     database_uri = os.getenv("DATABASE_URL") or dw_database_uri
     app.config["SQLALCHEMY_DATABASE_URI"] = database_uri
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -40,7 +41,7 @@ def create_app():
     CORS(app, resources={r"/api/*": {"origins": origins}})
     db.init_app(app)
 
-    # 注册模型与蓝图
+    # Register models and blueprints
     import dw_models  # noqa: F401
     from routes.dw import dw_bp
 
@@ -57,7 +58,7 @@ def create_app():
     def database_error(error):
         app.logger.error("Database request failed: %s", error)
         db.session.rollback()
-        return jsonify(code=503, message="数据库暂不可用，请检查连接配置和表结构", data=None), 503
+        return jsonify(code=503, message="The database is temporarily unavailable; check the connection settings and table structure", data=None), 503
 
     @app.errorhandler(404)
     def not_found(error):

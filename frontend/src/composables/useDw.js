@@ -1,25 +1,25 @@
 import { ref, watch } from 'vue'
 import { api } from '../api'
 
-// 各周期类型在趋势图中向前展示的周期数
+// Number of periods shown in the trend chart for each period type
 export const PERIOD_LIMIT = { week: 12, month: 12, quarter: 4, halfyear: 4, year: 4 }
 
 export function useDw() {
-  // 元数据（组织维度不含 employee）
+  // Metadata (the organization dimension excludes employee)
   const orgTypes = ref([])
   const periodTypes = ref([])
   const dimensions = ref({})
   const projects = ref([])
 
-  // 部门看板（组织维度）
+  // Department Board (organization dimension)
   const selectedOrgType = ref('department')
   const selectedPeriod = ref('month')
   const orgBoard = ref([])
   const orgLoading = ref(false)
   const orgError = ref('')
 
-  // 项目看板（项目维度）
-  const selectedProject = ref(null) // null 表示全部项目
+  // Project Board (project dimension)
+  const selectedProject = ref(null) // null means All Projects
   const projectPeriod = ref('month')
   const projectBoard = ref([])
   const projectLoading = ref(false)
@@ -33,7 +33,7 @@ export function useDw() {
       periodTypes.value = data.period_types || []
       dimensions.value = data.dimensions || {}
     } catch (error) {
-      // 元数据失败不阻断页面，筛选器回退为空
+      // A metadata failure does not block the page; filters fall back to empty
       orgTypes.value = []
       periodTypes.value = []
       dimensions.value = {}
@@ -80,7 +80,7 @@ export function useDw() {
     }
   }
 
-  // 当前周期值（用于过滤未来周期，例如 2026-11 时不显示 2026-12）
+  // Current period value (used to filter out future periods, e.g. do not show 2026-12 at 2026-11)
   function currentPeriodValue(periodType) {
     const now = new Date()
     const y = now.getFullYear()
@@ -100,7 +100,7 @@ export function useDw() {
     return ''
   }
 
-  // 周期列表：去重 + 升序 + 过滤未来周期 + 截断最近 N 个
+  // Period list: dedupe + ascending sort + filter out future periods + keep the latest N
   function periodLabels(items, periodType) {
     const current = currentPeriodValue(periodType)
     const values = [...new Set(items.map((item) => item.period_value))]

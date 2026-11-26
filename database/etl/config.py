@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-"""ETL 配置：数仓库连接与调度参数。
+"""ETL configuration: warehouse connection and scheduling parameters.
 
-可通过环境变量覆盖。
+Can be overridden with environment variables.
 """
 import os
 
@@ -16,5 +16,5 @@ SOURCE = {
 
 DEFAULT_RUN_TIME = os.getenv("DW_RUN_TIME", "02:00")
 
-# 分层执行顺序（依赖关系：ods -> dim -> dwd -> dwm -> dws -> ads）
+# Layer execution order (dependencies: ods -> dim -> dwd -> dwm -> dws -> ads)
 ORDER = ["ods", "dim", "dwd", "dwm", "dws", "ads"]

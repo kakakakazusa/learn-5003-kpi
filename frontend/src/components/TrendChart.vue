@@ -57,8 +57,8 @@ function render() {
         const rows = params.map((item) => {
           const value = props.percent
             ? `${Number(item.value * 100).toFixed(1)}%`
-            : `${Number(item.value).toLocaleString('zh-CN')}${props.unit}`
-          return `${item.marker}${item.seriesName}：${value}`
+            : `${Number(item.value).toLocaleString('en-US')}${props.unit}`
+          return `${item.marker}${item.seriesName}: ${value}`
         })
         return [params[0]?.axisValueLabel, ...rows].join('<br/>')
       },
@@ -119,7 +119,7 @@ watch(() => [props.xLabels, props.series], render, { deep: true })
     <div class="panel-heading">
       <div><h2>{{ title }}</h2><p>{{ subtitle }}</p></div>
       <span v-if="formula" class="help-wrap">
-        <button class="help-button" type="button" aria-label="查看指标公式">?</button>
+        <button class="help-button" type="button" aria-label="View metric formula">?</button>
         <span class="help-tip">{{ formula }}</span>
       </span>
     </div>

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""DWD 明细层同步。"""
+"""DWD detail layer sync."""
 
 
 def sync(conn):
@@ -37,4 +37,4 @@ def sync(conn):
 
     conn.commit()
     cur.close()
-    print("DWD 层同步完成")
+    print("DWD layer sync complete")

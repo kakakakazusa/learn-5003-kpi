@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-"""数仓库 `5003` 的 SQLAlchemy 数据模型。
+"""SQLAlchemy data models for the `5003` warehouse.
 
-表结构对齐 database/数据库设计文档.md，使用 Flask-SQLAlchemy 的 `dw` bind。
+Table structures align with database/DATABASE_DESIGN.md, using Flask-SQLAlchemy's `dw` bind.
 """
 from extensions import db
 
@@ -282,7 +282,7 @@ class AdsEcKpi(BaseDW):
     ec_severe_cnt = db.Column(db.Integer, nullable=False, server_default="0")
 
 
-# ---------- 项目维度（与组织维度并列） ----------
+# ---------- Project dimension (alongside the organization dimension) ----------
 class OdsPmProject(BaseDW):
     __tablename__ = "ods_pm_project"
 
@@ -374,7 +374,7 @@ class AdsEcProjectKpi(BaseDW):
     ec_severe_cnt = db.Column(db.Integer, nullable=False, server_default="0")
 
 
-# 所有 dw 模型，供遍历/校验使用
+# All dw models, for iteration/validation
 DW_MODELS = [
     OdsHrEmployee, OdsPmPr, OdsItsmEc, OdsPmProject,
     DwdPrFact, DwdEcFact,

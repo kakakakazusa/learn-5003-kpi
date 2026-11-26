@@ -20,10 +20,10 @@ const {
 } = useDw()
 
 const FORMULAS = {
-  completion: '需求完成率 = 需求完成数 ÷ 需求承接数 × 100%',
-  on_time: '准时交付率 = 准时交付数 ÷ 应交付数 × 100%',
-  ec_resolution: '故障解决率 = 故障解决数 ÷ 故障发现数 × 100%',
-  ec_response: '平均响应时长 = 故障响应时长总和 ÷ 故障数（分钟）',
+  completion: 'Completion Rate = Requirements Completed / Requirements Assigned x 100%',
+  on_time: 'On-time Rate = On-time Deliveries / Requirements Due x 100%',
+  ec_resolution: 'Resolution Rate = Incidents Resolved / Incidents Found x 100%',
+  ec_response: 'Avg. Response Time = Total Response Minutes / Incidents (min)',
 }
 
 const detail = ref(null)
@@ -51,7 +51,7 @@ function findEcRow(period, projectId) {
 const completionSeries = computed(() => {
   if (selectedProject.value) {
     const rows = periods.value.map((p) => findRow(p, selectedProject.value))
-    return [{ name: '需求完成率', data: rows.map((r) => r?.completion_rate ?? null), color: '#31866c' }]
+    return [{ name: 'Requirement Completion Rate', data: rows.map((r) => r?.completion_rate ?? null), color: '#31866c' }]
   }
   const data = periods.value.map((p) => {
     const rows = projectBoard.value.filter((item) => item.period_value === p)
@@ -59,13 +59,13 @@ const completionSeries = computed(() => {
     const complete = rows.reduce((sum, item) => sum + (item.complete_cnt || 0), 0)
     return assign > 0 ? complete / assign : null
   })
-  return [{ name: '需求完成率', data, color: '#31866c' }]
+  return [{ name: 'Requirement Completion Rate', data, color: '#31866c' }]
 })
 
 const onTimeSeries = computed(() => {
   if (selectedProject.value) {
     const rows = periods.value.map((p) => findRow(p, selectedProject.value))
-    return [{ name: '准时交付率', data: rows.map((r) => r?.on_time_rate ?? null), color: '#e5a84b' }]
+    return [{ name: 'On-time Delivery Rate', data: rows.map((r) => r?.on_time_rate ?? null), color: '#e5a84b' }]
   }
   const data = periods.value.map((p) => {
     const rows = projectBoard.value.filter((item) => item.period_value === p)
@@ -73,13 +73,13 @@ const onTimeSeries = computed(() => {
     const weighted = rows.reduce((sum, item) => sum + ((item.on_time_rate || 0) * (item.complete_cnt || 0)), 0)
     return complete > 0 ? weighted / complete : null
   })
-  return [{ name: '准时交付率', data, color: '#e5a84b' }]
+  return [{ name: 'On-time Delivery Rate', data, color: '#e5a84b' }]
 })
 
 const ecResolutionSeries = computed(() => {
   if (selectedProject.value) {
     const rows = ecPeriods.value.map((p) => findEcRow(p, selectedProject.value))
-    return [{ name: '故障解决率', data: rows.map((r) => r?.resolution_rate ?? null), color: '#5e8fad' }]
+    return [{ name: 'Incident Resolution Rate', data: rows.map((r) => r?.resolution_rate ?? null), color: '#5e8fad' }]
   }
   const data = ecPeriods.value.map((p) => {
     const rows = projectEcBoard.value.filter((item) => item.period_value === p)
@@ -87,13 +87,13 @@ const ecResolutionSeries = computed(() => {
     const resolved = rows.reduce((sum, item) => sum + (item.resolved_cnt || 0), 0)
     return found > 0 ? resolved / found : null
   })
-  return [{ name: '故障解决率', data, color: '#5e8fad' }]
+  return [{ name: 'Incident Resolution Rate', data, color: '#5e8fad' }]
 })
 
 const ecResponseSeries = computed(() => {
   if (selectedProject.value) {
     const rows = ecPeriods.value.map((p) => findEcRow(p, selectedProject.value))
-    return [{ name: '平均响应时长', data: rows.map((r) => r?.avg_response_minutes ?? null), color: '#8d7aa8' }]
+    return [{ name: 'Avg. Response Time', data: rows.map((r) => r?.avg_response_minutes ?? null), color: '#8d7aa8' }]
   }
   const data = ecPeriods.value.map((p) => {
     const rows = projectEcBoard.value.filter((item) => item.period_value === p)
@@ -101,7 +101,7 @@ const ecResponseSeries = computed(() => {
     const respSum = rows.reduce((sum, item) => sum + (item.response_minutes_sum || 0), 0)
     return found > 0 ? respSum / found : null
   })
-  return [{ name: '平均响应时长', data, color: '#8d7aa8' }]
+  return [{ name: 'Avg. Response Time', data, color: '#8d7aa8' }]
 })
 
 function showDetail(kind, { seriesName, dataIndex }) {
@@ -111,36 +111,36 @@ function showDetail(kind, { seriesName, dataIndex }) {
     if (selectedProject.value) {
       const item = findRow(period, selectedProject.value)
       rows = [
-        { label: '需求完成率', value: fmtPct(item?.completion_rate) },
-        { label: '需求承接数', value: item?.assign_cnt ?? 0 },
-        { label: '需求完成数', value: item?.complete_cnt ?? 0 },
+        { label: 'Requirement Completion Rate', value: fmtPct(item?.completion_rate) },
+        { label: 'Requirements Assigned', value: item?.assign_cnt ?? 0 },
+        { label: 'Requirements Completed', value: item?.complete_cnt ?? 0 },
       ]
     } else {
       const items = projectBoard.value.filter((row) => row.period_value === period)
       const assign = items.reduce((sum, row) => sum + (row.assign_cnt || 0), 0)
       const complete = items.reduce((sum, row) => sum + (row.complete_cnt || 0), 0)
       rows = [
-        { label: '需求完成率', value: assign > 0 ? fmtPct(complete / assign) : '—' },
-        { label: '需求承接数', value: assign },
-        { label: '需求完成数', value: complete },
+        { label: 'Requirement Completion Rate', value: assign > 0 ? fmtPct(complete / assign) : '—' },
+        { label: 'Requirements Assigned', value: assign },
+        { label: 'Requirements Completed', value: complete },
       ]
     }
   } else if (kind === 'on_time') {
     if (selectedProject.value) {
       const item = findRow(period, selectedProject.value)
       rows = [
-        { label: '准时交付率', value: fmtPct(item?.on_time_rate) },
-        { label: '应交付数', value: item?.due_cnt ?? 0 },
-        { label: '准时交付数', value: item?.on_time_cnt ?? 0 },
+        { label: 'On-time Delivery Rate', value: fmtPct(item?.on_time_rate) },
+        { label: 'Requirements Due', value: item?.due_cnt ?? 0 },
+        { label: 'On-time Deliveries', value: item?.on_time_cnt ?? 0 },
       ]
     } else {
       const items = projectBoard.value.filter((row) => row.period_value === period)
       const due = items.reduce((sum, row) => sum + (row.due_cnt || 0), 0)
       const onTime = items.reduce((sum, row) => sum + (row.on_time_cnt || 0), 0)
       rows = [
-        { label: '准时交付率', value: due > 0 ? fmtPct(onTime / due) : '—' },
-        { label: '应交付数', value: due },
-        { label: '准时交付数', value: onTime },
+        { label: 'On-time Delivery Rate', value: due > 0 ? fmtPct(onTime / due) : '—' },
+        { label: 'Requirements Due', value: due },
+        { label: 'On-time Deliveries', value: onTime },
       ]
     }
   } else if (kind === 'ec_resolution') {
@@ -148,18 +148,18 @@ function showDetail(kind, { seriesName, dataIndex }) {
     if (selectedProject.value) {
       const item = findEcRow(ecPeriod, selectedProject.value)
       rows = [
-        { label: '故障解决率', value: fmtPct(item?.resolution_rate) },
-        { label: '故障发现数', value: item?.found_cnt ?? 0 },
-        { label: '故障解决数', value: item?.resolved_cnt ?? 0 },
+        { label: 'Incident Resolution Rate', value: fmtPct(item?.resolution_rate) },
+        { label: 'Incidents Found', value: item?.found_cnt ?? 0 },
+        { label: 'Incidents Resolved', value: item?.resolved_cnt ?? 0 },
       ]
     } else {
       const items = projectEcBoard.value.filter((row) => row.period_value === ecPeriod)
       const found = items.reduce((sum, row) => sum + (row.found_cnt || 0), 0)
       const resolved = items.reduce((sum, row) => sum + (row.resolved_cnt || 0), 0)
       rows = [
-        { label: '故障解决率', value: found > 0 ? fmtPct(resolved / found) : '—' },
-        { label: '故障发现数', value: found },
-        { label: '故障解决数', value: resolved },
+        { label: 'Incident Resolution Rate', value: found > 0 ? fmtPct(resolved / found) : '—' },
+        { label: 'Incidents Found', value: found },
+        { label: 'Incidents Resolved', value: resolved },
       ]
     }
   } else if (kind === 'ec_response') {
@@ -167,18 +167,18 @@ function showDetail(kind, { seriesName, dataIndex }) {
     if (selectedProject.value) {
       const item = findEcRow(ecPeriod, selectedProject.value)
       rows = [
-        { label: '平均响应时长', value: item?.avg_response_minutes == null ? '—' : `${item.avg_response_minutes} 分钟` },
-        { label: '响应时长总和', value: `${item?.response_minutes_sum ?? 0} 分钟` },
-        { label: '故障数', value: item?.found_cnt ?? 0 },
+        { label: 'Avg. Response Time', value: item?.avg_response_minutes == null ? '—' : `${item.avg_response_minutes} min` },
+        { label: 'Total Response Time', value: `${item?.response_minutes_sum ?? 0} min` },
+        { label: 'Incidents', value: item?.found_cnt ?? 0 },
       ]
     } else {
       const items = projectEcBoard.value.filter((row) => row.period_value === ecPeriod)
       const found = items.reduce((sum, row) => sum + (row.found_cnt || 0), 0)
       const respSum = items.reduce((sum, row) => sum + (row.response_minutes_sum || 0), 0)
       rows = [
-        { label: '平均响应时长', value: found > 0 ? `${(respSum / found).toFixed(1)} 分钟` : '—' },
-        { label: '响应时长总和', value: `${respSum} 分钟` },
-        { label: '故障数', value: found },
+        { label: 'Avg. Response Time', value: found > 0 ? `${(respSum / found).toFixed(1)} min` : '—' },
+        { label: 'Total Response Time', value: `${respSum} min` },
+        { label: 'Incidents', value: found },
       ]
     }
   }
@@ -189,7 +189,7 @@ async function refreshCache() {
   try {
     await api.dwClearCache()
   } catch {
-    // 清缓存失败时仍尝试重新取数
+    // Still try to reload data if clearing the cache fails
   }
   loadProjectBoard()
 }
@@ -197,45 +197,45 @@ async function refreshCache() {
 
 <template>
   <section class="board">
-    <div class="range-row" aria-label="项目看板筛选">
+    <div class="range-row" aria-label="Project Board filters">
       <div class="board-filters">
         <label class="range-select-wrap">
-          <span>项目</span>
-          <select v-model="selectedProject" class="range-select scope-select" aria-label="项目">
-            <option :value="null">全部项目</option>
+          <span>Project</span>
+          <select v-model="selectedProject" class="range-select scope-select" aria-label="Project">
+            <option :value="null">All Projects</option>
             <option v-for="project in projects" :key="project.id" :value="project.id">{{ project.name }}</option>
           </select>
         </label>
         <label class="range-select-wrap">
-          <span>时间</span>
-          <select v-model="projectPeriod" class="range-select" aria-label="时间周期">
+          <span>Period</span>
+          <select v-model="projectPeriod" class="range-select" aria-label="Period">
             <option v-for="type in periodTypes" :key="type.value" :value="type.value">{{ type.label }}</option>
           </select>
         </label>
       </div>
       <button class="refresh-button" type="button" :disabled="projectLoading" @click="refreshCache">
         <svg :class="{ spinning: projectLoading }" viewBox="0 0 20 20" aria-hidden="true"><path d="M16.5 8A6.5 6.5 0 0 0 5 5.5L3.5 7M3.5 7V3.5M3.5 7H7m-3.5 5A6.5 6.5 0 0 0 15 14.5l1.5-1.5m0 0v3.5m0-3.5H13" /></svg>
-        刷新缓存
+        Clear Cache
       </button>
     </div>
 
     <div v-if="projectError" class="error-banner" role="alert">
-      <div><strong>暂时无法加载项目看板</strong><p>{{ projectError }}</p></div>
-      <button type="button" @click="loadProjectBoard">重试</button>
+      <div><strong>Unable to load the Project Board</strong><p>{{ projectError }}</p></div>
+      <button type="button" @click="loadProjectBoard">Retry</button>
     </div>
 
     <div class="trend-list" :aria-busy="projectLoading">
-      <TrendChart title="需求完成率" subtitle="项目需求完成情况" :formula="FORMULAS.completion" :x-labels="periods" :series="completionSeries" percent @point-click="(p) => showDetail('completion', p)" />
-      <TrendChart title="准时交付率" subtitle="项目需求准时交付情况" :formula="FORMULAS.on_time" :x-labels="periods" :series="onTimeSeries" percent @point-click="(p) => showDetail('on_time', p)" />
-      <TrendChart title="EC 故障解决率" subtitle="项目故障解决情况" :formula="FORMULAS.ec_resolution" :x-labels="ecPeriods" :series="ecResolutionSeries" percent @point-click="(p) => showDetail('ec_resolution', p)" />
-      <TrendChart title="EC 平均响应时长" subtitle="项目故障响应情况" :formula="FORMULAS.ec_response" :x-labels="ecPeriods" :series="ecResponseSeries" unit=" 分钟" @point-click="(p) => showDetail('ec_response', p)" />
+      <TrendChart title="Requirement Completion Rate" subtitle="Completion by project" :formula="FORMULAS.completion" :x-labels="periods" :series="completionSeries" percent @point-click="(p) => showDetail('completion', p)" />
+      <TrendChart title="On-time Delivery Rate" subtitle="On-time delivery by project" :formula="FORMULAS.on_time" :x-labels="periods" :series="onTimeSeries" percent @point-click="(p) => showDetail('on_time', p)" />
+      <TrendChart title="EC Resolution Rate" subtitle="Incident resolution by project" :formula="FORMULAS.ec_resolution" :x-labels="ecPeriods" :series="ecResolutionSeries" percent @point-click="(p) => showDetail('ec_resolution', p)" />
+      <TrendChart title="EC Avg. Response Time" subtitle="Incident response by project" :formula="FORMULAS.ec_response" :x-labels="ecPeriods" :series="ecResponseSeries" unit=" min" @point-click="(p) => showDetail('ec_response', p)" />
     </div>
 
     <div v-if="detail" class="detail-mask" @click.self="detail = null">
-      <div class="detail-panel" role="dialog" aria-label="指标明细">
+      <div class="detail-panel" role="dialog" aria-label="Metric Details">
         <div class="detail-head">
           <strong>{{ detail.title }}</strong>
-          <button type="button" class="detail-close" aria-label="关闭" @click="detail = null">×</button>
+          <button type="button" class="detail-close" aria-label="Close" @click="detail = null">×</button>
         </div>
         <div class="detail-body">
           <div v-for="row in detail.rows" :key="row.label" class="detail-row">

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""DWS 汇总层同步（组织 × 日）。"""
+"""DWS summary layer sync (organization x day)."""
 
 
 def sync(conn):
@@ -7,7 +7,7 @@ def sync(conn):
     cur.execute("DELETE FROM dws_pr_org_1d")
     cur.execute("DELETE FROM dws_ec_org_1d")
 
-    # 员工 × 日 → 团队 / 领域 / 部门 × 日（滚动聚合）
+    # Employee x day -> team / domain / department x day (rolling aggregation)
     cur.execute("""INSERT INTO dws_pr_org_1d
         SELECT m.stat_date, 'employee', e.employee_id, SUM(m.pr_assign_cnt), SUM(m.pr_complete_cnt),
                SUM(m.pr_due_cnt), SUM(m.pr_on_time_cnt), SUM(m.pr_rework_cnt),
@@ -40,4 +40,4 @@ def sync(conn):
 
     conn.commit()
     cur.close()
-    print("DWS 层同步完成")
+    print("DWS layer sync complete")

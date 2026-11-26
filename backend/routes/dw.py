@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""数仓库（5003）接口。
+"""Warehouse (5003) API.
 
 - GET /api/dw/health
 - GET /api/dw/meta
@@ -33,17 +33,17 @@ from extensions import db
 dw_bp = Blueprint("dw", __name__, url_prefix="/api/dw")
 
 ORG_TYPE_LABELS = {
-    "employee": "员工",
-    "team": "团队",
-    "domain": "领域",
-    "department": "部门",
+    "employee": "Employee",
+    "team": "Team",
+    "domain": "Domain",
+    "department": "Department",
 }
 PERIOD_TYPE_LABELS = {
-    "week": "周",
-    "month": "月",
-    "quarter": "季度",
-    "halfyear": "半年",
-    "year": "年",
+    "week": "Week",
+    "month": "Month",
+    "quarter": "Quarter",
+    "halfyear": "Half-year",
+    "year": "Year",
 }
 
 
@@ -216,9 +216,9 @@ def dw_board():
     org_type = request.args.get("org_type", "department")
     period_type = request.args.get("period_type", "month")
     if org_type not in ORG_TYPE_LABELS:
-        return jsonify(code=400, message="org_type 必须是 employee、team、domain 或 department", data=None), 400
+        return jsonify(code=400, message="org_type must be one of employee, team, domain, or department", data=None), 400
     if period_type not in PERIOD_TYPE_LABELS:
-        return jsonify(code=400, message="period_type 必须是 week、month、quarter、halfyear 或 year", data=None), 400
+        return jsonify(code=400, message="period_type must be one of week, month, quarter, halfyear, or year", data=None), 400
 
     cache_key = f"dw:board:{org_type}:{period_type}"
     cached = cache_get(cache_key)
@@ -352,7 +352,7 @@ def project_kpi():
 def project_board():
     period_type = request.args.get("period_type", "month")
     if period_type not in PERIOD_TYPE_LABELS:
-        return jsonify(code=400, message="period_type 必须是 week、month、quarter、halfyear 或 year", data=None), 400
+        return jsonify(code=400, message="period_type must be one of week, month, quarter, halfyear, or year", data=None), 400
 
     cache_key = f"dw:project:board:{period_type}"
     cached = cache_get(cache_key)
